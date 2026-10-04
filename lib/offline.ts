@@ -3,56 +3,86 @@ import { del, get, set } from "idb-keyval";
 
 export interface QueuedSession {
   code: string;
-  body: unknown; // the JSON body for POST /api/p/:code/sessions (without the secret)
+  /** The JSON body for POST /api/p/:code/sessions (without the secret). client_id identifies the item. */
+  body: { client_id: string } & Record<string, unknown>;
 }
 
 const KEY = "hp:outbox";
 const planKey = (code: string) => `hp:plan:${code}`;
 
-async function read(): Promise<QueuedSession[]> {
+/** Every outbox mutation runs through this chain so read-modify-write cycles never interleave. */
+let chain: Promise<unknown> = Promise.resolve();
+function exclusive<T>(fn: () => Promise<T>): Promise<T> {
+  const run = chain.then(fn, fn);
+  chain = run.catch(() => {});
+  return run;
+}
+
+/** Throws when storage is unreadable, so callers never overwrite data they could not read. */
+async function readStrict(): Promise<QueuedSession[]> {
+  return ((await get(KEY)) as QueuedSession[] | undefined) ?? [];
+}
+
+async function readLenient(): Promise<QueuedSession[]> {
   try {
-    return ((await get(KEY)) as QueuedSession[] | undefined) ?? [];
+    return await readStrict();
   } catch {
     return [];
   }
 }
 
-export async function enqueue(item: QueuedSession): Promise<void> {
-  const list = await read();
-  list.push(item);
-  await set(KEY, list);
+/** Returns false (and leaves existing data untouched) if storage failed. */
+export function enqueue(item: QueuedSession): Promise<boolean> {
+  return exclusive(async () => {
+    try {
+      const list = await readStrict();
+      list.push(item);
+      await set(KEY, list);
+      return true;
+    } catch {
+      return false;
+    }
+  });
 }
 
 export async function pendingCount(code: string): Promise<number> {
-  return (await read()).filter((q) => q.code === code).length;
+  return (await readLenient()).filter((q) => q.code === code).length;
 }
 
 /**
  * Send every queued session for this plan. Sessions carry a client_id, so a retry that the server
- * already stored comes back as a duplicate instead of being counted twice.
+ * already stored comes back as a duplicate instead of being counted twice. Sessions enqueued while
+ * the network calls are in flight are kept: only the items that were sent or dropped are removed.
  */
 export async function flush(code: string, secret: string): Promise<number> {
-  const list = await read();
-  const keep: QueuedSession[] = [];
+  const snapshot = (await readLenient()).filter((q) => q.code === code);
+  const done = new Set<string>();
   let sent = 0;
-  for (const q of list) {
-    if (q.code !== code) {
-      keep.push(q);
-      continue;
-    }
+  for (const q of snapshot) {
     try {
       const res = await fetch(`/api/p/${code}/sessions`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ secret, session: q.body }),
       });
-      if (res.ok || res.status === 400 || res.status === 410) sent++; // 400/410 will never succeed: drop
-      else keep.push(q);
+      if (res.ok || res.status === 400 || res.status === 410) {
+        sent++; // 400/410 will never succeed: drop
+        done.add(q.body.client_id);
+      }
     } catch {
-      keep.push(q);
+      // offline or server error: keep for the next flush
     }
   }
-  await set(KEY, keep);
+  if (done.size > 0) {
+    await exclusive(async () => {
+      try {
+        const latest = await readStrict();
+        await set(KEY, latest.filter((q) => !(q.code === code && done.has(q.body.client_id))));
+      } catch {
+        // could not write back: the items stay queued and the server dedupes them on the next flush
+      }
+    });
+  }
   return sent;
 }
 
@@ -71,7 +101,14 @@ export async function loadPlan<T>(code: string): Promise<T | null> {
   }
 }
 
-export async function forgetPlan(code: string): Promise<void> {
-  await del(planKey(code));
-  await set(KEY, (await read()).filter((q) => q.code !== code));
+export function forgetPlan(code: string): Promise<void> {
+  return exclusive(async () => {
+    try {
+      await del(planKey(code));
+      const list = await readStrict();
+      await set(KEY, list.filter((q) => q.code !== code));
+    } catch {
+      // storage unavailable: nothing to forget
+    }
+  });
 }

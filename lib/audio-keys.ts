@@ -24,7 +24,7 @@ export const CUES = {
   session_done: "วันนี้ทำครบแล้ว ขอบคุณที่ทำการบ้าน",
 } as const;
 
-/** Every sentence the app may speak. scripts/gen-tts.ts turns these into audio files. */
+/** Every sentence the app may speak. scripts/gen-tts.mts turns these into audio files. */
 export function allSpokenTexts(): string[] {
   const texts = new Set<string>();
   for (const p of postures) {

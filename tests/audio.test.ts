@@ -34,3 +34,12 @@ describe("wav", () => {
     expect(rateFromMime(undefined)).toBe(24000);
   });
 });
+
+describe("textKey golden values", () => {
+  it("pins the hash so existing audio files keep matching", () => {
+    expect(textKey("a")).toBe("e40c292c");
+  });
+  it("treats decomposed and composed text as the same key (NFC)", () => {
+    expect(textKey("é")).toBe(textKey("é"));
+  });
+});
