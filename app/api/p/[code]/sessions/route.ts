@@ -2,14 +2,14 @@ import { patientPlan } from "@/lib/api/guards";
 import { SessionBody } from "@/lib/api/schemas";
 import { addDays } from "@/lib/aggregate";
 import { getStore } from "@/lib/db";
-import { bangkokToday, fail, json, parseBody } from "@/lib/http";
+import { bangkokToday, fail, json, parseBody, withErrors } from "@/lib/http";
 import { evaluateRedFlags, worst } from "@/lib/redflags";
 
 /**
  * Patient submits one session. The server re-evaluates the red flags with the same rules the phone used,
  * stores the session and the flags, and returns the response the phone should show.
  */
-export async function POST(req: Request, ctx: { params: Promise<{ code: string }> }) {
+export const POST = withErrors(async (req: Request, ctx: { params: Promise<{ code: string }> }) => {
   const { code } = await ctx.params;
   const body = await parseBody(req, SessionBody);
   if (body instanceof Response) return body;
@@ -40,8 +40,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     answers: s.answers,
     client_id: s.client_id,
   });
-  if (created && flags.length) {
+  // A retry of a session whose flags never got written (insertFlags failed after the row was saved) must still store them.
+  const needFlags = flags.length > 0 && (created || !(await store.listFlags({ planIds: [plan.id] })).some((f) => f.session_id === row.id));
+  if (needFlags) {
     await store.insertFlags(flags.map((f) => ({ plan_id: plan.id, session_id: row.id, rule_id: f.rule_id, level: f.level, posture_id: f.posture_id })));
   }
   return json({ ok: true, duplicate: !created, flags, worst: worst(flags) }, created ? 201 : 200);
-}
+});

@@ -7,6 +7,18 @@ export const json = (data: unknown, status = 200, headers: Record<string, string
 /** Thai error message for people, short code for the app. Never includes stack traces. */
 export const fail = (status: number, code: string, message_th: string) => json({ error: code, message_th }, status);
 
+/** Wrap a route handler so an unexpected exception becomes the same JSON envelope as every other error (no stack, no details). */
+export function withErrors<A extends unknown[]>(fn: (...a: A) => Promise<Response>) {
+  return async (...a: A): Promise<Response> => {
+    try {
+      return await fn(...a);
+    } catch (e) {
+      console.error(e);
+      return fail(500, "server_error", "ระบบขัดข้อง โปรดลองใหม่อีกครั้ง");
+    }
+  };
+}
+
 export async function parseBody<T extends z.ZodType>(req: Request, schema: T): Promise<z.infer<T> | Response> {
   let raw: unknown;
   try {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { hashPin } from "@/lib/auth";
 import { setStore } from "@/lib/db";
 import { MemoryStore } from "@/lib/db/memory";
@@ -135,6 +135,31 @@ describe("patient flow", () => {
     expect(store.flags).toHaveLength(1);
   });
 
+  it("keeps the red flags when the first attempt failed after the session row was saved", async () => {
+    const { body } = await newPlan();
+    const p = params({ code: body.code });
+    await consent(post(`/api/p/${body.code}/consent`, { secret: body.secret }), p);
+    const orig = store.insertFlags.bind(store);
+    let calls = 0;
+    store.insertFlags = async (f) => {
+      if (calls++ === 0) throw new Error("db down");
+      return orig(f);
+    };
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const mk = () => post(`/api/p/${body.code}/sessions`, { secret: body.secret, session: session({ answers: { RF04: true } }) });
+    expect((await postSession(mk(), p)).status).toBe(500);
+    expect(store.sessions).toHaveLength(1);
+    expect(store.flags).toHaveLength(0);
+    const retry = await postSession(mk(), p);
+    expect(retry.status).toBe(200);
+    expect(store.sessions).toHaveLength(1);
+    expect(store.flags).toHaveLength(1);
+    expect(store.flags[0].session_id).toBe(store.sessions[0].id);
+    await postSession(mk(), p);
+    expect(store.flags).toHaveLength(1);
+    vi.restoreAllMocks();
+  });
+
   it("re-evaluates red flags on the server and attaches the posture", async () => {
     const { body } = await newPlan();
     const p = params({ code: body.code });
@@ -218,6 +243,33 @@ describe("DTAM and demo", () => {
     const res = await demoReset(post("/api/demo/reset", { token: "reset-token-123" }));
     expect(res.status).toBe(200);
     expect(store.clinics.map((c) => c.code)).toEqual(["DEMO-A", "DEMO-B", "DEMO-C"]);
+  });
+});
+
+describe("error envelope", () => {
+  it("turns an unexpected exception into a JSON 500 without details", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    store.listPlans = async () => {
+      throw new Error("boom secret detail");
+    };
+    const res = await dashboard(get("/api/clinic/dashboard", clinicCookie));
+    expect(res.status).toBe(500);
+    const b = await res.json();
+    expect(b.error).toBe("server_error");
+    expect(typeof b.message_th).toBe("string");
+    expect(JSON.stringify(b)).not.toContain("boom");
+    vi.restoreAllMocks();
+  });
+
+  it("answers 404 for a flag id that is not a UUID, before touching the store", async () => {
+    let touched = false;
+    store.acknowledgeFlag = async () => {
+      touched = true;
+      return false;
+    };
+    const res = await ack(post("/api/flags/not-a-uuid/ack", {}, clinicCookie), params({ id: "not-a-uuid" }));
+    expect(res.status).toBe(404);
+    expect(touched).toBe(false);
   });
 });
 

@@ -1,5 +1,5 @@
 import { patientPlan } from "@/lib/api/guards";
-import { fail } from "@/lib/http";
+import { fail, withErrors } from "@/lib/http";
 import { buildIcs } from "@/lib/ics";
 import { patientUrl } from "@/lib/plan";
 
@@ -7,7 +7,7 @@ import { patientUrl } from "@/lib/plan";
  * Calendar file for "เพิ่มลงปฏิทิน". The secret is in the query string here because calendar apps open the
  * link directly (the one exception to "secret only after #", accepted in the spec).
  */
-export async function GET(req: Request, ctx: { params: Promise<{ code: string }> }) {
+export const GET = withErrors(async (req: Request, ctx: { params: Promise<{ code: string }> }) => {
   const { code } = await ctx.params;
   const url = new URL(req.url);
   const secret = url.searchParams.get("k") ?? "";
@@ -29,4 +29,4 @@ export async function GET(req: Request, ctx: { params: Promise<{ code: string }>
       "cache-control": "no-store",
     },
   });
-}
+});

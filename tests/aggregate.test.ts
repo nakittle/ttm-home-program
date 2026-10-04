@@ -77,6 +77,12 @@ describe("pin hashing", () => {
     expect(verifyPin("000000", h)).toBe(false);
     expect(verifyPin("246810", "garbage")).toBe(false);
   });
+  it("rejects malformed stored hashes instead of comparing empty buffers", () => {
+    expect(verifyPin("123456", "scrypt$aa$zz")).toBe(false);
+    expect(verifyPin("123456", "scrypt$aa$")).toBe(false);
+    expect(verifyPin("123456", "scrypt$zz$" + "ab".repeat(32))).toBe(false);
+    expect(verifyPin("123456", "scrypt$aa$" + "ab".repeat(16))).toBe(false);
+  });
 });
 
 describe("demo seed + DTAM summary", () => {

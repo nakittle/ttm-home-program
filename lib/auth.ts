@@ -1,18 +1,23 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { jwtVerify, SignJWT } from "jose";
 
+const HASH_BYTES = 32;
+const HEX = /^(?:[0-9a-f]{2})+$/i;
+
 /** "scrypt$<salt hex>$<hash hex>" */
 export function hashPin(pin: string): string {
   const salt = randomBytes(16);
-  const hash = scryptSync(pin, salt, 32);
+  const hash = scryptSync(pin, salt, HASH_BYTES);
   return `scrypt$${salt.toString("hex")}$${hash.toString("hex")}`;
 }
 
 export function verifyPin(pin: string, stored: string): boolean {
   const [alg, saltHex, hashHex] = stored.split("$");
   if (alg !== "scrypt" || !saltHex || !hashHex) return false;
+  if (!HEX.test(saltHex) || !HEX.test(hashHex)) return false;
   const want = Buffer.from(hashHex, "hex");
-  const got = scryptSync(pin, Buffer.from(saltHex, "hex"), want.length);
+  if (want.length !== HASH_BYTES) return false;
+  const got = scryptSync(pin, Buffer.from(saltHex, "hex"), HASH_BYTES);
   return timingSafeEqual(want, got);
 }
 

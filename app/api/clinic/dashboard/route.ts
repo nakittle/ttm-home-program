@@ -1,8 +1,8 @@
 import { clinicDashboard } from "@/lib/aggregate";
 import { getStore, usingMemoryStore } from "@/lib/db";
-import { bangkokToday, clinicIdFrom, fail, json } from "@/lib/http";
+import { bangkokToday, clinicIdFrom, fail, json, withErrors } from "@/lib/http";
 
-export async function GET(req: Request) {
+export const GET = withErrors(async (req: Request) => {
   const clinicId = await clinicIdFrom(req);
   if (!clinicId) return fail(401, "unauthorized", "โปรดเข้าสู่ระบบคลินิก");
   const store = getStore();
@@ -17,4 +17,4 @@ export async function GET(req: Request) {
     data_as_of: new Date().toISOString(),
     memory_store: usingMemoryStore(),
   });
-}
+});

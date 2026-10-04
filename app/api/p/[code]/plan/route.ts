@@ -1,10 +1,10 @@
 import { patientPlan } from "@/lib/api/guards";
 import { SecretBody } from "@/lib/api/schemas";
 import { getStore } from "@/lib/db";
-import { json, parseBody } from "@/lib/http";
+import { json, parseBody, withErrors } from "@/lib/http";
 
 /** What the patient's phone needs to run the plan. No clinic-internal data. */
-export async function POST(req: Request, ctx: { params: Promise<{ code: string }> }) {
+export const POST = withErrors(async (req: Request, ctx: { params: Promise<{ code: string }> }) => {
   const { code } = await ctx.params;
   const body = await parseBody(req, SecretBody);
   if (body instanceof Response) return body;
@@ -24,4 +24,4 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     clinic: { name: clinic?.name ?? "", phone: clinic?.phone ?? null },
     settings: clinic?.settings ?? { disabled: [], thresholds: {} },
   });
-}
+});
