@@ -28,7 +28,8 @@ async function synth(text: string): Promise<Buffer> {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": KEY! },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: `อ่านออกเสียงภาษาไทยช้า ๆ ชัด ๆ น้ำเสียงอบอุ่น สำหรับผู้สูงอายุ: ${text}` }] }],
+      // Send only the text: this model reads any style directive aloud ("สิบ" became 8 s of instructions + the word).
+      contents: [{ parts: [{ text }] }],
       generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: VOICE } } } },
     }),
   });
@@ -37,7 +38,11 @@ async function synth(text: string): Promise<Buffer> {
   const part = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData)?.inlineData;
   if (!part) throw new Error("no audio in response");
   // MP3 keeps phone downloads small; Gemini's trailing C2PA chunk is not audio, so drop it before encoding.
-  return pcmToMp3(splitC2pa(Buffer.from(part.data, "base64")).audio, rateFromMime(part.mimeType));
+  const pcm = splitC2pa(Buffer.from(part.data, "base64")).audio;
+  const rate = rateFromMime(part.mimeType);
+  const seconds = pcm.length / 2 / rate;
+  if (seconds > 2 + text.length * 0.3) console.warn(`  ⚠ ${seconds.toFixed(1)}s is long for ${text.length} chars — listen to this one`);
+  return pcmToMp3(pcm, rate);
 }
 
 const sample = process.argv.includes("--sample");
