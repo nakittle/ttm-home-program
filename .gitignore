@@ -6,3 +6,4 @@ node_modules/
 # MediaPipe assets are fetched at build time
 /public/mediapipe/
 *.tsbuildinfo
+.vercel
