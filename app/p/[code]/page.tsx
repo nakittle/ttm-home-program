@@ -1,16 +1,31 @@
 "use client";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CUES } from "@/lib/audio-keys";
-import { speak, unlockAudio } from "@/lib/audio";
+import { unlockAudio } from "@/lib/audio";
 import { api, thaiDate, todayLocal } from "@/lib/client";
 import { getGroup, getPosture, rulesAskedAt } from "@/lib/content";
 import { enqueue, flush, forgetPlan, loadPlan, pendingCount, savePlan } from "@/lib/offline";
 import type { PostureResult } from "@/lib/pose/session";
-import { evaluateRedFlags, stopsSession, worst, type Answers, type ClinicRuleSettings, type FiredFlag } from "@/lib/redflags";
+import {
+  advance,
+  applyRaise,
+  classifySubmit,
+  emptyRun,
+  flagsFor,
+  isRetryableStatus,
+  sessionBody,
+  skippedResult,
+  stopRun,
+  stopsNow,
+  visibleFlags,
+  type RunData,
+  type SessionBody,
+} from "@/lib/patient-run";
+import { ruleById, worst, type ClinicRuleSettings, type FiredFlag } from "@/lib/redflags";
 import { PostureRunner, type DuringButton } from "@/components/patient/PostureRunner";
 import { PainScale, YesNoQuestions } from "@/components/patient/Questions";
-import { FlagMessage } from "@/components/patient/Outcome";
+import { FlagMessage, SpeakOnce } from "@/components/patient/Outcome";
 
 interface Plan {
   code: string;
@@ -26,6 +41,9 @@ interface Plan {
   settings: ClinicRuleSettings;
 }
 
+/** sending → sent | queued (offline outbox) | saveFailed (outbox failed) | notSent (server refused, e.g. 400/401/403/410). */
+type SaveState = "sending" | "sent" | "queued" | "saveFailed" | "notSent";
+
 type Stage =
   | { s: "loading" }
   | { s: "error"; msg: string }
@@ -36,9 +54,10 @@ type Stage =
   | { s: "ask_before_posture"; i: number }
   | { s: "posture"; i: number }
   | { s: "dizzy_check"; i: number }
+  | { s: "pause"; i: number; ruleId: string }
   | { s: "pain_after" }
   | { s: "post" }
-  | { s: "result"; flags: FiredFlag[]; queued: boolean; saveFailed: boolean };
+  | { s: "result"; runId: string; flags: FiredFlag[]; save: SaveState };
 
 const lastDoneKey = (code: string) => `hp:last:${code}`;
 
@@ -47,14 +66,17 @@ export default function PatientPage() {
   const [secret, setSecret] = useState("");
   const [plan, setPlan] = useState<Plan | null>(null);
   const [stage, setStage] = useState<Stage>({ s: "loading" });
-  const [answers, setAnswers] = useState<Answers>({});
-  const [postureFlags, setPostureFlags] = useState<{ rule_id: string; posture_id: string }[]>([]);
-  const [results, setResults] = useState<PostureResult[]>([]);
-  const [painBefore, setPainBefore] = useState<number | null>(null);
-  const [painAfter, setPainAfter] = useState<number | null>(null);
   const [pending, setPending] = useState(0);
   const [offline, setOffline] = useState(false);
   const [doneToday, setDoneToday] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  // The run in progress lives in refs and is passed explicitly to every step: never read from a stale render.
+  const run = useRef<RunData>(emptyRun());
+  const clientId = useRef(""); // one per run: a retry or a second tap never makes a second session
+  const finishing = useRef(false); // set once finish() ran for this run
+  const cursor = useRef<number | null>(null); // posture index currently on screen (null = none)
+  const paused = useRef<number | null>(null); // posture index whose pause card is on screen
 
   const load = useCallback(async (sec: string) => {
     const r = await api<Plan>(`/api/p/${code}/plan`, { body: { secret: sec } });
@@ -64,8 +86,8 @@ export default function PatientPage() {
       await savePlan(code, p);
       setOffline(false);
       await flush(code, sec);
-    } else if (r.status === 0) {
-      p = await loadPlan<Plan>(code); // offline: last plan seen online
+    } else if (isRetryableStatus(r.status)) {
+      p = await loadPlan<Plan>(code); // offline, rate-limited or server error: last plan seen online
       setOffline(true);
     } else {
       return setStage({ s: "error", msg: r.message_th ?? "ลิงก์นี้ใช้ไม่ได้แล้ว โปรดติดต่อคลินิก" });
@@ -90,76 +112,92 @@ export default function PatientPage() {
     return () => clearTimeout(t);
   }, [load]);
 
-  /** Submit (or queue when offline) and show the outcome. */
-  async function finish(extra: { answers?: Answers; painBefore?: number | null; painAfter?: number | null; results?: PostureResult[] }) {
-    if (!plan) return;
-    const a = { ...answers, ...(extra.answers ?? {}) };
-    const before = extra.painBefore !== undefined ? extra.painBefore : painBefore;
-    const res = extra.results ?? results;
-    const body = {
-      client_id: crypto.randomUUID(),
-      performed_on: todayLocal(),
-      pain_before: before,
-      pain_after: extra.painAfter ?? null,
-      results: res,
-      answers: a,
-      posture_flags: postureFlags,
-    };
-    const flags = evaluateRedFlags({ answers: a, painBefore: before, painAfter: extra.painAfter ?? null }, plan.settings);
-    let queued = false;
-    let saveFailed = false;
-    const r = await api(`/api/p/${code}/sessions`, { body: { secret, session: body } });
-    if (!r.ok && (r.status === 0 || r.status >= 500)) {
-      queued = await enqueue({ code, body });
-      saveFailed = !queued;
-      setPending(await pendingCount(code));
-    }
-    if (res.some((x) => x.method !== "skipped")) {
+  /** Show the outcome at once (never wait on the network), then submit in the background. Runs once per run. */
+  function finish(data: RunData) {
+    if (!plan || finishing.current) return;
+    finishing.current = true;
+    cursor.current = null;
+    paused.current = null;
+    run.current = data;
+    const flags = flagsFor(data, plan.settings);
+    const body = sessionBody(data, clientId.current, todayLocal());
+    if (data.results.some((x) => x.method !== "skipped")) {
       try {
         localStorage.setItem(lastDoneKey(code), todayLocal());
       } catch {}
       setDoneToday(true);
     }
-    if (!flags.length) speak(CUES.session_done);
-    setStage({ s: "result", flags, queued, saveFailed });
+    setStage({ s: "result", runId: body.client_id, flags, save: "sending" });
+    void submit(body);
   }
 
-  /** A red flag answered mid-session: stop everything, or pause just this posture. */
-  function raise(ruleId: string, postureIndex: number | null) {
-    if (!plan) return;
-    const next = { ...answers, [ruleId]: true };
-    setAnswers(next);
-    const postureId = postureIndex !== null ? plan.posture_ids[postureIndex] : null;
-    if (postureId) setPostureFlags((f) => [...f, { rule_id: ruleId, posture_id: postureId }]);
-    const flags = evaluateRedFlags({ answers: next, painBefore }, plan.settings);
-    const w = worst(flags);
-    if (w && stopsSession(w.level)) {
-      const skipped = plan.posture_ids.slice(results.length).map((id) => ({ posture_id: id, method: "skipped" as const, units_done: 0, units_target: getPosture(id).detector.units, seconds_held: 0 }));
-      return finish({ answers: next, results: [...results, ...skipped] });
+  async function submit(body: SessionBody) {
+    const r = await api(`/api/p/${code}/sessions`, { body: { secret, session: body } });
+    let save: SaveState = "sent";
+    const outcome = classifySubmit(r.ok, r.status);
+    if (outcome === "retry") {
+      save = (await enqueue({ code, body })) ? "queued" : "saveFailed";
+      setPending(await pendingCount(code));
+    } else if (outcome === "rejected") {
+      save = "notSent";
     }
-    if (postureIndex !== null) skipPosture(postureIndex, next);
+    setStage((st) => (st.s === "result" && st.runId === body.client_id ? { ...st, save } : st));
   }
 
-  function skipPosture(i: number, a = answers) {
+  /** A red flag answered "yes" for posture i: stop everything, or pause just this posture. */
+  function raise(ruleId: string, i: number) {
+    if (!plan || finishing.current || cursor.current !== i) return;
+    const out = applyRaise(run.current, ruleId, i, plan.posture_ids, plan.settings);
+    run.current = out.run;
+    if (out.kind === "stop") return finish(out.run);
+    if (out.kind === "pause") {
+      cursor.current = null; // late onDone/onButton from this posture are ignored
+      paused.current = i;
+      return setStage({ s: "pause", i, ruleId: out.ruleId });
+    }
+    advanceFrom(i, skippedResult(plan.posture_ids[i]));
+  }
+
+  /** After the pause card: posture i is skipped (and, after RF11, every later standing posture). */
+  function continueAfterPause(i: number) {
+    if (!plan || finishing.current || paused.current !== i) return;
+    paused.current = null;
+    advanceFrom(i, skippedResult(plan.posture_ids[i]));
+  }
+
+  /** Posture i finished (camera or button). Ignored if it is no longer the posture on screen. */
+  function postureDone(i: number, r: PostureResult) {
+    if (!plan || finishing.current || cursor.current !== i) return;
+    advanceFrom(i, r);
+  }
+
+  function advanceFrom(i: number, r: PostureResult) {
     if (!plan) return;
-    const id = plan.posture_ids[i];
-    const r: PostureResult = { posture_id: id, method: "skipped", units_done: 0, units_target: getPosture(id).detector.units, seconds_held: 0 };
-    next(i, [...results, r], a);
+    const out = advance(run.current, plan.posture_ids, i, r);
+    run.current = out.run;
+    if (out.next === null) {
+      cursor.current = null;
+      setStage({ s: "pain_after" });
+    } else {
+      goPosture(out.next);
+    }
   }
 
-  function next(i: number, res: PostureResult[], a = answers) {
-    setResults(res);
-    setAnswers(a);
-    if (!plan) return;
-    if (i + 1 < plan.posture_ids.length) setStage(beforePosture(i + 1));
-    else setStage({ s: "pain_after" });
-  }
-
-  function beforePosture(i: number): Stage {
+  function goPosture(i: number) {
+    cursor.current = i;
     const id = plan!.posture_ids[i];
-    if (rulesAskedAt("before_posture", id).length) return { s: "ask_before_posture", i };
-    if (getPosture(id).position === "standing") speak(CUES.chair_nearby);
-    return { s: "posture", i };
+    setStage(rulesAskedAt("before_posture", id).length ? { s: "ask_before_posture", i } : { s: "posture", i });
+  }
+
+  function startRun() {
+    unlockAudio();
+    run.current = emptyRun();
+    clientId.current = crypto.randomUUID();
+    finishing.current = false;
+    cursor.current = null;
+    paused.current = null;
+    setActionError(null);
+    setStage({ s: "pre" });
   }
 
   if (stage.s === "loading") return <main className="p-6 text-center">กำลังเปิดแผน…</main>;
@@ -185,21 +223,28 @@ export default function PatientPage() {
             <li>ข้อมูลเก็บที่เซิร์ฟเวอร์ในสิงคโปร์ (ต่างประเทศ) และลบเมื่อปิดแผนครบ 90 วัน</li>
             <li>คลินิกที่ออกใบนัดเห็นข้อมูลของแผนนี้ กรมการแพทย์แผนไทยฯ เห็นเฉพาะตัวเลขรวม</li>
             <li>ถอนความยินยอมและลบข้อมูลได้ทุกเมื่อ ที่ปุ่ม “ลบข้อมูลของฉัน”</li>
-            <li>แอปนี้ไม่ใช่การวินิจฉัยหรือรักษา ท่าทั้งหมดมาจากแผ่นของกรมฯ ตามที่แพทย์แผนไทยสั่ง</li>
+            <li>แอปนี้ไม่ได้ตรวจโรคหรือรักษา ท่าทั้งหมดมาจากแผ่นของกรมฯ ตามที่แพทย์แผนไทยสั่ง</li>
             <li>ผู้ป่วยอายุต่ำกว่า 18 ปี ให้ผู้ปกครองเป็นผู้กดยินยอม</li>
           </ul>
           <button
             className="btn w-full text-xl"
+            disabled={busy}
             onClick={async () => {
+              setBusy(true);
+              setActionError(null);
               const r = await api<{ consent_at: string }>(`/api/p/${code}/consent`, { body: { secret } });
+              setBusy(false);
               if (r.ok) {
                 setPlan({ ...plan, consent_at: r.data.consent_at });
                 setStage({ s: "home" });
+              } else {
+                setActionError(`บันทึกความยินยอมไม่สำเร็จ ${r.message_th ?? ""} ลองใหม่อีกครั้ง`);
               }
             }}
           >
             ยินยอมและเริ่มใช้งาน
           </button>
+          {actionError && <p className="text-red-700">{actionError}</p>}
         </section>
       )}
 
@@ -218,16 +263,7 @@ export default function PatientPage() {
             </ol>
             {doneToday && <p className="text-green-700 font-semibold">✅ วันนี้ทำแล้ว</p>}
           </div>
-          <button
-            className="btn w-full text-2xl py-5"
-            onClick={() => {
-              unlockAudio();
-              setAnswers({});
-              setResults([]);
-              setPostureFlags([]);
-              setStage({ s: "pre" });
-            }}
-          >
+          <button className="btn w-full text-2xl py-5" onClick={startRun}>
             ▶ เริ่มทำการบ้านวันนี้
           </button>
           <a className="btn-ghost w-full" href={`/api/p/${code}/calendar?k=${encodeURIComponent(secret)}`}>
@@ -242,17 +278,27 @@ export default function PatientPage() {
             <summary>ตั้งค่า</summary>
             <button
               className="btn-ghost mt-2 border-red-300 text-red-800"
+              disabled={busy}
               onClick={async () => {
                 if (!confirm("ลบข้อมูลทั้งหมดของแผนนี้และหยุดใช้งาน?")) return;
+                setBusy(true);
+                setActionError(null);
                 const r = await api(`/api/p/${code}/delete`, { body: { secret } });
+                setBusy(false);
                 if (r.ok) {
                   await forgetPlan(code);
+                  try {
+                    localStorage.removeItem(lastDoneKey(code));
+                  } catch {}
                   setStage({ s: "error", msg: "ลบข้อมูลของคุณแล้ว แผนนี้หยุดใช้งาน" });
+                } else {
+                  setActionError(`ลบข้อมูลไม่สำเร็จ ${r.message_th ?? ""} ลองใหม่อีกครั้ง`);
                 }
               }}
             >
               ลบข้อมูลของฉัน
             </button>
+            {actionError && <p className="mt-2 text-red-700">{actionError}</p>}
           </details>
         </section>
       )}
@@ -263,9 +309,10 @@ export default function PatientPage() {
           <YesNoQuestions
             rules={rulesAskedAt("pre")}
             onDone={(a) => {
-              setAnswers(a);
-              const w = worst(evaluateRedFlags({ answers: a }, plan.settings));
-              if (w && stopsSession(w.level)) return finish({ answers: a, results: [] });
+              if (finishing.current) return;
+              const data = { ...run.current, answers: { ...run.current.answers, ...a } };
+              run.current = data;
+              if (stopsNow(data, plan.settings)) return finish(stopRun(data, plan.posture_ids));
               setStage({ s: "pain_before" });
             }}
           />
@@ -276,10 +323,11 @@ export default function PatientPage() {
         <PainScale
           title="ตอนนี้ปวดแค่ไหน (ก่อนทำท่า)"
           onDone={(v) => {
-            setPainBefore(v);
-            const w = worst(evaluateRedFlags({ answers, painBefore: v }, plan.settings));
-            if (w && stopsSession(w.level)) return finish({ painBefore: v, results: [] });
-            setStage(beforePosture(0));
+            if (finishing.current) return;
+            const data = { ...run.current, painBefore: v };
+            run.current = data;
+            if (stopsNow(data, plan.settings)) return finish(stopRun(data, plan.posture_ids));
+            goPosture(0);
           }}
         />
       )}
@@ -290,6 +338,8 @@ export default function PatientPage() {
           <YesNoQuestions
             rules={rulesAskedAt("before_posture", plan.posture_ids[stage.i])}
             onDone={(a) => {
+              if (finishing.current || cursor.current !== stage.i) return;
+              run.current = { ...run.current, answers: { ...run.current.answers, ...a } }; // "no" answers too
               const yes = Object.entries(a).find(([, v]) => v)?.[0];
               if (yes) return raise(yes, stage.i);
               setStage({ s: "posture", i: stage.i });
@@ -302,11 +352,11 @@ export default function PatientPage() {
         <PostureRunner
           key={plan.posture_ids[stage.i]}
           posture={getPosture(plan.posture_ids[stage.i])}
-          onDone={(r) => next(stage.i, [...results, r])}
+          onDone={(r) => postureDone(stage.i, r)}
           onButton={(b: DuringButton) => {
             if (b === "sharp_pain") raise("RF04", stage.i);
             else if (b === "unsteady") raise("RF11", stage.i);
-            else setStage({ s: "dizzy_check", i: stage.i });
+            else if (!finishing.current && cursor.current === stage.i) setStage({ s: "dizzy_check", i: stage.i });
           }}
         />
       )}
@@ -323,30 +373,61 @@ export default function PatientPage() {
         </section>
       )}
 
-      {stage.s === "pain_after" && <PainScale title="หลังทำท่า ตอนนี้ปวดแค่ไหน" onDone={(v) => { setPainAfter(v); setStage({ s: "post" }); }} />}
+      {stage.s === "pause" && (
+        <section className="space-y-3">
+          <SpeakOnce key={`${stage.i}:${stage.ruleId}`} text={ruleById(stage.ruleId).patient_message_th} />
+          <FlagMessage
+            flag={{ rule_id: stage.ruleId, level: ruleById(stage.ruleId).level, posture_id: plan.posture_ids[stage.i] }}
+            clinicPhone={plan.clinic.phone}
+          />
+          <button className="btn w-full text-xl" onClick={() => continueAfterPause(stage.i)}>
+            พักแล้ว ทำท่าถัดไป
+          </button>
+        </section>
+      )}
+
+      {stage.s === "pain_after" && (
+        <PainScale
+          title="หลังทำท่า ตอนนี้ปวดแค่ไหน"
+          onDone={(v) => {
+            if (finishing.current) return;
+            run.current = { ...run.current, painAfter: v };
+            setStage({ s: "post" });
+          }}
+        />
+      )}
 
       {stage.s === "post" && (
         <section className="space-y-3">
           <h1 className="text-xl font-bold">หลังทำท่า</h1>
-          <YesNoQuestions rules={rulesAskedAt("post")} onDone={(a) => finish({ answers: a, painAfter })} />
+          <YesNoQuestions rules={rulesAskedAt("post")} onDone={(a) => finish({ ...run.current, answers: { ...run.current.answers, ...a } })} />
         </section>
       )}
 
-      {stage.s === "result" && (
-        <section className="space-y-3">
-          {stage.flags.length === 0 && <p className="card text-xl">✅ {CUES.session_done}</p>}
-          {worst(stage.flags) && <FlagMessage flag={worst(stage.flags)!} clinicPhone={plan.clinic.phone} />}
-          {stage.flags.slice(1).map((f) => (
-            <FlagMessage key={f.rule_id} flag={f} clinicPhone={plan.clinic.phone} />
-          ))}
-          {stage.queued && <p className="text-orange-700">ยังส่งผลไม่ได้ (ไม่มีอินเทอร์เน็ต) แอปจะส่งให้อัตโนมัติเมื่อเปิดลิงก์อีกครั้ง</p>}
-          {stage.saveFailed && <p className="text-orange-700">ยังส่งผลไม่ได้ และเก็บผลไว้ในมือถือไม่สำเร็จ โปรดแจ้งคลินิกเมื่อพบกันครั้งหน้า</p>}
-          <button className="btn-ghost w-full" onClick={() => setStage({ s: "home" })}>
-            กลับหน้าแรก
-          </button>
-        </section>
-      )}
+      {stage.s === "result" && <Result key={stage.runId} stage={stage} clinicPhone={plan.clinic.phone} onHome={() => setStage({ s: "home" })} />}
     </main>
   );
+}
 
+/** The outcome: shown at once; the save line updates when the background submit settles. */
+function Result({ stage, clinicPhone, onHome }: { stage: Extract<Stage, { s: "result" }>; clinicPhone: string | null; onHome: () => void }) {
+  const w = worst(stage.flags);
+  const shown = visibleFlags(stage.flags); // after a stop-level flag only that level: no reassuring cards next to 1669
+  return (
+    <section className="space-y-3">
+      {/* Only the worst message is spoken, once per run (the save-state update does not remount this). */}
+      <SpeakOnce text={w ? ruleById(w.rule_id).patient_message_th : CUES.session_done} />
+      {!w && stage.save !== "notSent" && <p className="card text-xl">✅ {CUES.session_done}</p>}
+      {shown.map((f) => (
+        <FlagMessage key={f.rule_id} flag={f} clinicPhone={clinicPhone} />
+      ))}
+      {stage.save === "sending" && <p className="text-stone-500">กำลังส่งผล…</p>}
+      {stage.save === "queued" && <p className="text-orange-700">ยังส่งผลไม่ได้ (ไม่มีอินเทอร์เน็ต) แอปจะส่งให้อัตโนมัติเมื่อเปิดลิงก์อีกครั้ง</p>}
+      {stage.save === "saveFailed" && <p className="text-orange-700">ยังส่งผลไม่ได้ และเก็บผลไว้ในมือถือไม่สำเร็จ โปรดแจ้งคลินิกเมื่อพบกันครั้งหน้า</p>}
+      {stage.save === "notSent" && <p className="card text-xl text-red-800">ส่งผลไม่สำเร็จ โปรดแจ้งคลินิก</p>}
+      <button className="btn-ghost w-full" onClick={onHome}>
+        กลับหน้าแรก
+      </button>
+    </section>
+  );
 }

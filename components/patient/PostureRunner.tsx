@@ -4,6 +4,7 @@ import { CUES, THAI_NUMBERS } from "@/lib/audio-keys";
 import { speak, stopSpeaking } from "@/lib/audio";
 import { creditLine, sheetUrl } from "@/lib/content";
 import type { Posture } from "@/lib/content/schema";
+import { withTimeout } from "@/lib/client";
 import { closeCamera, drawSkeleton, loadLandmarker, openCamera, runLoop } from "@/lib/pose/camera";
 import { medianFrame } from "@/lib/pose/geometry";
 import type { Frame, Side } from "@/lib/pose/landmarks";
@@ -33,30 +34,62 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
   const [fps, setFps] = useState(0);
   const [hint, setHint] = useState<string | null>(null);
   const [offerButton, setOfferButton] = useState(false);
+  const [cameraFailed, setCameraFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const stopRef = useRef<(() => void) | null>(null);
+  const mountedRef = useRef(false);
+  const attemptRef = useRef(0); // bumped by every start/stop so a slow startCamera can tell it is stale
+  const doneRef = useRef(false);
+  const standing = posture.position === "standing";
 
-  useEffect(
-    () => () => {
-      stopRef.current?.();
-      closeCamera(streamRef.current);
+  /** Stop the frame loop and turn the camera off (safe to call any number of times). */
+  function stopCamera() {
+    attemptRef.current++;
+    stopRef.current?.();
+    stopRef.current = null;
+    closeCamera(streamRef.current);
+    streamRef.current = null;
+  }
+
+  useEffect(() => {
+    mountedRef.current = true;
+    // Runs after the previous runner's cleanup (which stops audio), so this is not cut off.
+    if (standing) speak(CUES.chair_nearby);
+    return () => {
+      mountedRef.current = false;
+      stopCamera();
       stopSpeaking();
-    },
-    [],
-  );
+    };
+  }, [standing]);
+
+  /** Report the result once, and never after unmount. */
+  function report(r: PostureResult) {
+    if (doneRef.current || !mountedRef.current) return;
+    doneRef.current = true;
+    onDone(r);
+  }
 
   async function startCamera() {
+    stopCamera();
+    const attempt = attemptRef.current;
+    const alive = () => mountedRef.current && attemptRef.current === attempt;
     setMode("loading");
+    setCameraFailed(false);
+    let stream: MediaStream | null = null;
     try {
-      const landmarker = await Promise.race([
-        loadLandmarker(),
-        new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout")), 20_000)),
-      ]);
+      const landmarker = await withTimeout(loadLandmarker(), 20_000);
+      if (!alive()) return;
       setMode("setup");
-      const video = videoRef.current!;
-      streamRef.current = await openCamera(video);
+      const video = videoRef.current;
+      if (!video) throw new Error("no video element");
+      stream = await openCamera(video); // includes video.play()
+      if (!alive()) {
+        closeCamera(stream);
+        return;
+      }
+      streamRef.current = stream;
       speak(setupTip(posture));
       let buf: Frame[] = [];
       let calibFrames: Frame[] = [];
@@ -64,38 +97,43 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
       let session = startSession(det);
       let visibleSince: number | null = null;
       let lowFpsSince: number | null = null;
-      let lastInPose = performance.now();
       let lastSpoken = -1;
       let lastPhase = session.phase;
       let lastUi = 0;
+      let lastOk = false;
       const t0 = performance.now();
+      let lastDetected = t0; // last time the body was fully seen (setup) or in the pose (run)
       stopRef.current = runLoop(video, landmarker, (frame, fpsNow) => {
+        if (!alive()) return;
         const now = performance.now();
-        if (canvasRef.current && video.videoWidth) {
-          canvasRef.current.width = video.videoWidth;
-          canvasRef.current.height = video.videoHeight;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        if (video.videoWidth) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
         }
         if (fpsNow < 8 && now - t0 > 3000) lowFpsSince ??= now;
         else lowFpsSince = null;
         if (lowFpsSince && now - lowFpsSince > 5000) setOfferButton(true);
-        if (!frame) {
-          drawSkeleton(canvasRef.current!, null, false);
-          if (now - lastInPose > 15_000) setOfferButton(true);
-          return;
-        }
-        buf = [...buf.slice(-4), frame];
-        const f = medianFrame(buf);
-        const seeAll = requiredVisible(det, f, session.side);
+        if (now - lastDetected > 15_000) setOfferButton(true); // any phase
+
+        if (frame) buf = [...buf.slice(-4), frame];
+        const f = frame ? medianFrame(buf) : null;
 
         if (!calib) {
-          drawSkeleton(canvasRef.current!, f, seeAll);
+          if (!f) {
+            drawSkeleton(canvas, null, false);
+            return;
+          }
+          const seeAll = requiredVisible(det, f, session.side);
+          drawSkeleton(canvas, f, seeAll);
           if (!seeAll) {
             visibleSince = null;
             calibFrames = [];
             setHint(CUES.get_in_frame);
-            if (now - t0 > 15_000) setOfferButton(true);
             return;
           }
+          lastDetected = now;
           visibleSince ??= now;
           if (now - visibleSince < 1000) return;
           if (calibFrames.length === 0) {
@@ -118,10 +156,11 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
           return;
         }
 
-        const ok = evaluate(det.in_pose, { frame: f, calib, side: session.side });
-        if (ok) lastInPose = now;
+        // No person in this frame: still a frame out of the pose, so the hold pauses after the grace time.
+        const ok = f ? evaluate(det.in_pose, { frame: f, calib, side: session.side }) : false;
+        if (ok) lastDetected = now;
         session = step(det, session, now, ok);
-        drawSkeleton(canvasRef.current!, f, ok);
+        drawSkeleton(canvas, f, ok);
 
         if (session.phase === "hold" && det.mode === "hold") {
           const sec = Math.floor(session.heldMs / 1000);
@@ -138,14 +177,14 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
           if (session.phase === "release") speak(det.sides === "alternate" ? `${CUES.release} ${CUES.switch_side}` : CUES.release);
           if (session.phase === "done") {
             speak(CUES.posture_done);
-            stopRef.current?.();
-            closeCamera(streamRef.current);
-            onDone(toResult(posture.id, session));
+            stopCamera();
+            report(toResult(posture.id, session));
+            return;
           }
           lastPhase = session.phase;
         }
-        if (session.phase === "ready" && now - lastInPose > 15_000) setOfferButton(true);
-        if (now - lastUi > 100) {
+        if (now - lastUi > 100 || ok !== lastOk) {
+          lastOk = ok;
           lastUi = now;
           setView(session);
           setInPose(ok);
@@ -153,13 +192,16 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
         }
       });
     } catch {
+      if (stream && streamRef.current !== stream) closeCamera(stream);
+      if (!alive()) return;
+      stopCamera();
+      setCameraFailed(true);
       setMode("button");
     }
   }
 
   function useButtons() {
-    stopRef.current?.();
-    closeCamera(streamRef.current);
+    stopCamera();
     setMode("button");
   }
 
@@ -190,6 +232,7 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
               </li>
             ))}
           </ol>
+          {standing && <p className="card border-2 border-yellow-400 bg-yellow-50 text-lg font-semibold">🪑 {CUES.chair_nearby}</p>}
           {posture.note_th && <p className="text-sm text-stone-600">{posture.note_th}</p>}
           {posture.cautions_th.length > 0 && <p className="text-sm text-orange-800">ข้อควรระวัง: {posture.cautions_th.join(" / ")}</p>}
           <p className="text-xs text-stone-500">
@@ -252,7 +295,8 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
         </div>
       )}
 
-      {mode === "button" && <ButtonMode posture={posture} onDone={onDone} />}
+      {mode === "button" && cameraFailed && <p className="text-orange-700">ใช้กล้องไม่ได้ ใช้ปุ่มแทน</p>}
+      {mode === "button" && <ButtonMode posture={posture} onDone={report} />}
 
       <div className="grid grid-cols-3 gap-2 pt-2">
         <button className="btn-ghost border-red-400 text-red-800" onClick={() => onButton("sharp_pain")}>
@@ -274,8 +318,8 @@ function ButtonMode({ posture, onDone }: { posture: Posture; onDone: (r: Posture
   const det = posture.detector;
   const [unit, setUnit] = useState(0);
   const [left, setLeft] = useState<number | null>(null);
-  const finish = (units: number) =>
-    onDone({ posture_id: posture.id, method: "button", units_done: units, units_target: det.units, seconds_held: units * det.hold_seconds });
+  const finish = (secondsHeld: number) =>
+    onDone({ posture_id: posture.id, method: "button", units_done: det.units, units_target: det.units, seconds_held: secondsHeld });
 
   useEffect(() => {
     if (left === null) return;
@@ -287,7 +331,9 @@ function ButtonMode({ posture, onDone }: { posture: Posture; onDone: (r: Posture
       }, 0);
       return () => clearTimeout(t);
     }
-    if (left <= THAI_NUMBERS.length) speak(THAI_NUMBERS[det.hold_seconds - left] ?? "");
+    // Count elapsed seconds from the second tick, so the first tick does not cut off "เริ่มค้างท่า".
+    const elapsed = det.hold_seconds - left;
+    if (elapsed >= 1 && elapsed <= THAI_NUMBERS.length) speak(THAI_NUMBERS[elapsed - 1]);
     const t = setTimeout(() => setLeft(left - 1), 1000);
     return () => clearTimeout(t);
   }, [left, det.hold_seconds]);
@@ -311,11 +357,11 @@ function ButtonMode({ posture, onDone }: { posture: Posture; onDone: (r: Posture
           {left !== null ? `ค้างไว้… ${left}` : det.mode === "hold" ? `เริ่มค้าง ${det.hold_seconds} วินาที` : "เริ่มครั้งนี้"}
         </button>
       ) : (
-        <button className="btn w-full text-xl" onClick={() => finish(det.units)}>
+        <button className="btn w-full text-xl" onClick={() => finish(det.units * det.hold_seconds)}>
           ✅ ทำครบแล้ว
         </button>
       )}
-      <button className="btn-ghost w-full" onClick={() => finish(det.units)}>
+      <button className="btn-ghost w-full" onClick={() => finish(0)}>
         ทำครบแล้ว (ข้ามตัวจับเวลา)
       </button>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { postures } from "@/lib/content";
-import { drawSkeleton, loadLandmarker, openCamera, runLoop } from "@/lib/pose/camera";
+import { closeCamera, drawSkeleton, loadLandmarker, openCamera, runLoop } from "@/lib/pose/camera";
 import { medianFrame } from "@/lib/pose/geometry";
 import type { Frame, Side } from "@/lib/pose/landmarks";
 import { calibrate, evaluate, type Calibration } from "@/lib/pose/rules";
@@ -22,22 +22,58 @@ export default function LabPage() {
   const sideRef = useRef<Side>("R");
   const recordingRef = useRef(false);
 
+  const stopLoopRef = useRef<(() => void) | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const fileUrlRef = useRef<string | null>(null);
+  const attemptRef = useRef(0);
+
   useEffect(() => {
     sideRef.current = side;
     recordingRef.current = recording;
   }, [side, recording]);
 
+  /** Stop the frame loop, the camera and any open video file. */
+  function stop() {
+    attemptRef.current++;
+    stopLoopRef.current?.();
+    stopLoopRef.current = null;
+    closeCamera(streamRef.current);
+    streamRef.current = null;
+    const video = videoRef.current;
+    if (video) {
+      video.pause();
+      video.srcObject = null;
+      video.removeAttribute("src");
+    }
+    if (fileUrlRef.current) URL.revokeObjectURL(fileUrlRef.current);
+    fileUrlRef.current = null;
+  }
+
+  useEffect(() => () => stop(), []);
+
   async function start(file?: File) {
-    const video = videoRef.current!;
+    stop();
+    const attempt = attemptRef.current;
+    const stale = () => attemptRef.current !== attempt;
+    const video = videoRef.current;
+    if (!video) return;
     const lm = await loadLandmarker();
+    if (stale()) return;
     if (file) {
-      video.src = URL.createObjectURL(file);
+      fileUrlRef.current = URL.createObjectURL(file);
+      video.src = fileUrlRef.current;
       video.muted = true;
       await video.play();
+      if (stale()) return;
     } else {
-      await openCamera(video);
+      const stream = await openCamera(video);
+      if (stale()) {
+        closeCamera(stream);
+        return;
+      }
+      streamRef.current = stream;
     }
-    runLoop(video, lm, (frame) => {
+    stopLoopRef.current = runLoop(video, lm, (frame) => {
       if (!frame) return;
       bufRef.current = [...bufRef.current.slice(-4), frame];
       const f = medianFrame(bufRef.current);

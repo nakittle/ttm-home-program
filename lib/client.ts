@@ -24,6 +24,15 @@ export async function api<T = unknown>(path: string, init: { method?: string; bo
   }
 }
 
+/** Reject with Error("timeout") if `p` has not settled after `ms`; the timer is always cleared. */
+export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const t = new Promise<never>((_, rej) => {
+    timer = setTimeout(() => rej(new Error("timeout")), ms);
+  });
+  return Promise.race([p, t]).finally(() => clearTimeout(timer));
+}
+
 export function todayLocal(): string {
   const d = new Date();
   const p = (n: number) => String(n).padStart(2, "0");

@@ -29,17 +29,23 @@ export function loadLandmarker(): Promise<PoseLandmarker> {
   return landmarkerPromise;
 }
 
-/** Front camera stream. Throws if the user denies permission. */
+/** Front camera stream. Throws if the user denies permission; never leaves the camera on when it throws. */
 export async function openCamera(video: HTMLVideoElement): Promise<MediaStream> {
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
     audio: false,
   });
-  video.srcObject = stream;
-  video.muted = true;
-  video.playsInline = true; // iOS: never hide the <video> with display:none
-  await video.play();
-  return stream;
+  try {
+    video.srcObject = stream;
+    video.muted = true;
+    video.playsInline = true; // iOS: never hide the <video> with display:none
+    await video.play();
+    return stream;
+  } catch (e) {
+    closeCamera(stream);
+    if (video.srcObject === stream) video.srcObject = null;
+    throw e;
+  }
 }
 
 export function closeCamera(stream: MediaStream | null): void {
