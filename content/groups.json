@@ -1,0 +1,41 @@
+{
+  "series_title_th": "ยืดเหยียด...ดัดตน...พ้นโรค ด้วยท่าฤๅษีดัดตน",
+  "publisher_th": "กรมการแพทย์แผนไทยและการแพทย์ทางเลือก",
+  "year_be": 2569,
+  "sheets": {
+    "1": { "title_th": "กลุ่มกล้ามเนื้อและพังผืด (Office syndrome)", "url": "https://www.dtam.moph.go.th/dtam-dl/46988/" },
+    "2": { "title_th": "กลุ่มหัวไหล่ติด", "url": "https://www.dtam.moph.go.th/dtam-dl/46997/" },
+    "3": { "title_th": "กลุ่มนิ้วล็อค (Trigger Finger)", "url": "https://www.dtam.moph.go.th/news-release/47271/" },
+    "4": { "title_th": "กลุ่มอาการปวดหลัง และกลุ่มหมอนรองกระดูกทับเส้นประสาท", "url": "https://www.dtam.moph.go.th/news-release/48207/" },
+    "5": { "title_th": "กลุ่มกล้ามเนื้อสะโพกหนีบเส้นประสาท (Piriformis Syndrome)", "url": "https://www.dtam.moph.go.th/news-release/48813/" },
+    "6": { "title_th": "กลุ่มเข่าเสื่อม (Knee Osteoarthritis)", "url": "https://www.dtam.moph.go.th/news-release/49037/" },
+    "7": { "title_th": "กลุ่มอัมพฤกษ์/อัมพาต (Stroke)", "url": "https://www.dtam.moph.go.th/news-release/49296/" }
+  },
+  "groups": [
+    {
+      "id": "office",
+      "name_th": "ออฟฟิศซินโดรม",
+      "sheet": 1,
+      "active": true,
+      "posture_ids": ["kae-kiat", "kae-lom-puat-sisa", "kae-lom-wian-sisa", "kae-lom-pakang", "kae-puat-thong-sabak-chom"]
+    },
+    {
+      "id": "shoulder",
+      "name_th": "หัวไหล่ติด",
+      "sheet": 2,
+      "active": true,
+      "posture_ids": ["kae-puat-thong-sabak-chom", "kae-sabak-na-chom", "kae-salak-lai", "kae-kho-khlet-kae-lai-khat", "kae-lom-nai-ok-nai-eo"]
+    },
+    {
+      "id": "knee",
+      "name_th": "เข่าเสื่อม",
+      "sheet": 6,
+      "active": true,
+      "posture_ids": ["kae-khao-khat", "kae-klon", "kae-khao-kae-kha", "damrong-kai-ayu-yuen"]
+    },
+    { "id": "trigger-finger", "name_th": "นิ้วล็อค", "sheet": 3, "active": false, "posture_ids": [] },
+    { "id": "low-back", "name_th": "ปวดหลัง / หมอนรองกระดูกทับเส้นประสาท", "sheet": 4, "active": false, "posture_ids": [] },
+    { "id": "piriformis", "name_th": "สะโพกหนีบเส้นประสาท", "sheet": 5, "active": false, "posture_ids": [] },
+    { "id": "stroke", "name_th": "อัมพฤกษ์ / อัมพาต", "sheet": 7, "active": false, "posture_ids": [] }
+  ]
+}
