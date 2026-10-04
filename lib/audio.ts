@@ -83,6 +83,7 @@ async function speakWithDevice(text: string, mine: number): Promise<void> {
 async function playFile(url: string): Promise<void> {
   const a = audioEl();
   a.src = url;
+  let mine: () => void = () => {};
   const finished = new Promise<void>((resolve) => {
     const onPause = () => {
       if (a.paused) done(); // a stale pause event from stopSpeaking arrives while paused is already false
@@ -94,6 +95,7 @@ async function playFile(url: string): Promise<void> {
       if (settlePending === done) settlePending = null;
       resolve();
     };
+    mine = done;
     settlePending = done;
     a.addEventListener("ended", done);
     a.addEventListener("error", done);
@@ -102,7 +104,7 @@ async function playFile(url: string): Promise<void> {
   try {
     await a.play();
   } catch (e) {
-    settlePending?.();
+    mine(); // our own settle, not whatever a newer speak has registered since
     throw e;
   }
   await finished;

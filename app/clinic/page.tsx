@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { DashboardItem } from "@/lib/aggregate";
-import { api, pct, thaiDate } from "@/lib/client";
+import { api, pct, thaiDate, type ApiResult } from "@/lib/client";
 import { getGroup, getPosture } from "@/lib/content";
 import { ruleById } from "@/lib/redflags";
 import { LevelBadge } from "@/components/LevelBadge";
@@ -66,8 +66,23 @@ function PainSpark({ pain }: { pain: DashboardItem["pain"] }) {
   );
 }
 
-function Row({ item, reload }: { item: DashboardItem; reload: () => void }) {
+function Row({ item, reload, onUnauthorized }: { item: DashboardItem; reload: () => void; onUnauthorized: () => void }) {
   const [open, setOpen] = useState(item.priority <= 1);
+  const [rowErr, setRowErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  /** Run one row action: 401 goes to the login form, other failures show in the row, success runs onOk (default: reload). */
+  async function act<T>(call: () => Promise<ApiResult<T>>, onOk?: (data: T) => void) {
+    if (busy) return;
+    setBusy(true);
+    setRowErr(null);
+    const r = await call();
+    setBusy(false);
+    if (r.status === 401) return onUnauthorized();
+    if (!r.ok) return setRowErr(r.message_th ?? "ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง");
+    if (onOk) onOk(r.data);
+    else reload();
+  }
   const urgent = item.priority === 0 ? "border-red-400" : item.priority === 1 ? "border-yellow-400" : "border-stone-200";
   return (
     <li className={`card border-2 ${urgent}`}>
@@ -87,10 +102,8 @@ function Row({ item, reload }: { item: DashboardItem; reload: () => void }) {
               {f.posture_id && <span className="text-stone-500">(ท่า{getPosture(f.posture_id).name_th.replace(/^ท่า/, "")})</span>}
               <button
                 className="btn-ghost py-1"
-                onClick={async () => {
-                  await api(`/api/flags/${f.id}/ack`, { body: {} });
-                  reload();
-                }}
+                disabled={busy}
+                onClick={() => act(() => api(`/api/flags/${f.id}/ack`, { body: {} }))}
               >
                 รับทราบ
               </button>
@@ -109,32 +122,45 @@ function Row({ item, reload }: { item: DashboardItem; reload: () => void }) {
             <div className="flex flex-wrap gap-2">
               <button
                 className="btn-ghost"
-                onClick={async () => {
-                  const r = await api<{ secret: string }>(`/api/plans/${item.code}/reissue`, { body: {} });
-                  if (r.ok) window.location.href = `/clinic/slip/${item.code}#${r.data.secret}`;
+                disabled={busy}
+                onClick={() => {
+                  if (!confirm("ออกใบนัดใหม่? QR เดิมของผู้ป่วยจะใช้ไม่ได้")) return;
+                  act(
+                    () => api<{ secret: string }>(`/api/plans/${item.code}/reissue`, { body: {} }),
+                    (d) => {
+                      window.location.href = `/clinic/slip/${item.code}#${d.secret}`;
+                    },
+                  );
                 }}
               >
                 ออกใบนัดใหม่ (QR เดิมใช้ไม่ได้)
               </button>
               <button
                 className="btn-ghost"
-                onClick={async () => {
-                  await api(`/api/plans/${item.code}`, { method: "PATCH", body: { status: "completed" } });
-                  reload();
+                disabled={busy}
+                onClick={() => {
+                  if (!confirm("ปิดแผนว่าครบคอร์ส? เปิดใหม่ไม่ได้")) return;
+                  act(() => api(`/api/plans/${item.code}`, { method: "PATCH", body: { status: "completed" } }));
                 }}
               >
                 ครบคอร์ส
               </button>
               <button
                 className="btn-ghost"
-                onClick={async () => {
-                  await api(`/api/plans/${item.code}`, { method: "PATCH", body: { status: "stopped" } });
-                  reload();
+                disabled={busy}
+                onClick={() => {
+                  if (!confirm("หยุดแผนนี้? เปิดใหม่ไม่ได้")) return;
+                  act(() => api(`/api/plans/${item.code}`, { method: "PATCH", body: { status: "stopped" } }));
                 }}
               >
                 หยุดแผน
               </button>
             </div>
+          )}
+          {rowErr && (
+            <p role="alert" className="text-red-700">
+              {rowErr}
+            </p>
           )}
         </div>
       )}
@@ -202,7 +228,7 @@ export default function ClinicPage() {
       {offline && <p className="text-orange-700">เชื่อมต่อไม่ได้ แสดงข้อมูลล่าสุดที่โหลดไว้</p>}
       <ul className="space-y-3">
         {active.map((i) => (
-          <Row key={i.code} item={i} reload={load} />
+          <Row key={i.code} item={i} reload={load} onUnauthorized={() => setNeedLogin(true)} />
         ))}
         {active.length === 0 && <li className="card text-stone-500">ยังไม่มีแผน กด “สร้างแผน” เพื่อเริ่ม</li>}
       </ul>
@@ -211,7 +237,7 @@ export default function ClinicPage() {
           <summary className="cursor-pointer text-stone-600">แผนที่ปิดแล้ว ({closed.length})</summary>
           <ul className="space-y-3 mt-3">
             {closed.map((i) => (
-              <Row key={i.code} item={i} reload={load} />
+              <Row key={i.code} item={i} reload={load} onUnauthorized={() => setNeedLogin(true)} />
             ))}
           </ul>
         </details>

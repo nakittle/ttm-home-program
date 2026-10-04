@@ -11,6 +11,18 @@ const STRENGTH_TH = { stated: "เอกสารเขียนไว้", deri
 export default function SettingsPage() {
   const [settings, setSettings] = useState<ClinicRuleSettings | null>(null);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState<{ unauthorized: boolean; message: string } | null>(null);
+  // Text typed in each threshold box; settings only ever holds a valid 1-10 value.
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  /** Every edit goes through here so the "saved" tick and an old error never outlive the change. */
+  const change = (next: ClinicRuleSettings) => {
+    setSettings(next);
+    setSaved(false);
+    setSaveErr(null);
+  };
+  const isValid = (t: string) => /^\d+$/.test(t) && Number(t) >= 1 && Number(t) <= 10;
 
   useEffect(() => {
     api<{ clinic: { settings: ClinicRuleSettings } }>("/api/clinic/dashboard").then((r) => {
@@ -19,6 +31,7 @@ export default function SettingsPage() {
     });
   }, []);
 
+  const hasBad = Object.values(drafts).some((t) => !isValid(t));
   if (!settings) return <main className="px-4 py-10 text-center">กำลังโหลด…</main>;
   return (
     <main className="mx-auto max-w-3xl px-4 py-6 space-y-4">
@@ -42,7 +55,7 @@ export default function SettingsPage() {
                       type="checkbox"
                       checked={!off}
                       onChange={() =>
-                        setSettings({ ...settings, disabled: off ? settings.disabled.filter((x) => x !== r.id) : [...settings.disabled, r.id] })
+                        change({ ...settings, disabled: off ? settings.disabled.filter((x) => x !== r.id) : [...settings.disabled, r.id] })
                       }
                     />
                     ใช้กฎนี้
@@ -60,10 +73,18 @@ export default function SettingsPage() {
                     min={1}
                     max={10}
                     className="w-16 rounded border px-2"
-                    value={settings.thresholds[r.id] ?? r.trigger.value}
-                    onChange={(e) => setSettings({ ...settings, thresholds: { ...settings.thresholds, [r.id]: Number(e.target.value) } })}
+                    value={drafts[r.id] ?? String(settings.thresholds[r.id] ?? r.trigger.value)}
+                    onChange={(e) => {
+                      const t = e.target.value;
+                      setDrafts((d) => ({ ...d, [r.id]: t }));
+                      setSaved(false);
+                      setSaveErr(null);
+                      // An empty or out-of-range box keeps the last good value in settings; save stays disabled meanwhile.
+                      if (isValid(t)) change({ ...settings, thresholds: { ...settings.thresholds, [r.id]: Number(t) } });
+                    }}
                   />{" "}
                   ระดับ
+                  {drafts[r.id] !== undefined && !isValid(drafts[r.id]) && <span className="ml-2 text-red-700">ใส่เลข 1–10</span>}
                 </label>
               )}
               <p className="text-xs text-stone-500">ที่มา: {r.source_th}</p>
@@ -73,13 +94,34 @@ export default function SettingsPage() {
       </ul>
       <button
         className="btn w-full"
+        disabled={saving || hasBad}
         onClick={async () => {
+          setSaving(true);
+          setSaved(false);
+          setSaveErr(null);
           const r = await api("/api/clinic/settings", { method: "PUT", body: settings });
-          setSaved(r.ok);
+          setSaving(false);
+          if (r.ok) setSaved(true);
+          else if (r.status === 401) setSaveErr({ unauthorized: true, message: "โปรดเข้าสู่ระบบใหม่" });
+          else setSaveErr({ unauthorized: false, message: r.message_th ?? "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง" });
         }}
       >
         บันทึก
       </button>
+      {hasBad && <p className="text-red-700">เกณฑ์ปวดต้องเป็นเลข 1–10 จึงจะบันทึกได้</p>}
+      {saveErr && (
+        <p role="alert" className="text-red-700">
+          {saveErr.message}
+          {saveErr.unauthorized && (
+            <>
+              {" "}
+              <Link href="/clinic" className="underline">
+                เข้าสู่ระบบ
+              </Link>
+            </>
+          )}
+        </p>
+      )}
       {saved && <p className="text-green-700">บันทึกแล้ว</p>}
     </main>
   );

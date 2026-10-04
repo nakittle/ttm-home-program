@@ -30,7 +30,8 @@ export default function SlipPage() {
       return;
     }
     const url = `${window.location.origin}/p/${code}#${secret}`;
-    QRCode.toDataURL(url, { margin: 1, width: 360, errorCorrectionLevel: "M" }).then(setQr);
+    QRCode.toDataURL(url, { margin: 1, width: 360, errorCorrectionLevel: "M" }).then(setQr)
+      .catch(() => setErr("สร้าง QR ไม่สำเร็จ ลองใหม่อีกครั้ง"));
     api<PlanView>(`/api/p/${code}/plan`, { body: { secret } }).then((r) => (r.ok ? setPlan(r.data) : setErr(r.message_th ?? "โหลดแผนไม่ได้")));
   }, [code]);
 
@@ -68,7 +69,7 @@ export default function SlipPage() {
             ))}
           </ol>
         )}
-        <p className="text-xs">สแกน QR ด้วยกล้องมือถือ (ให้ลูกหลานช่วยได้) ไม่ต้องติดตั้งแอป · มีอาการผิดปกติโทรคลินิก {plan?.clinic.phone ?? ""} · ฉุกเฉินโทร 1669</p>
+        <p className="text-xs">สแกน QR ด้วยกล้องมือถือ (ให้ลูกหลานช่วยได้) ไม่ต้องติดตั้งแอป · มีอาการผิดปกติ{plan?.clinic.phone ? `โทรคลินิก ${plan.clinic.phone} · ` : " · "}ฉุกเฉินโทร 1669</p>
         <p className="text-[10px] text-stone-500">
           ท่าจาก “{groupsFile.series_title_th}” {groupsFile.publisher_th} {groupsFile.year_be}
         </p>
