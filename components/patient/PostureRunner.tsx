@@ -239,7 +239,8 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
             {creditLine(posture)} ·{" "}
             <a className="underline" href={sheetUrl(posture.source.sheet)} target="_blank" rel="noreferrer">
               ดูต้นฉบับ
-            </a>
+            </a>{" "}
+            · เสียงอ่านสร้างด้วย AI (Gemini) จากข้อความในแผ่นของกรมฯ
           </p>
         </>
       )}
