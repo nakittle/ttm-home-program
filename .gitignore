@@ -3,3 +3,5 @@
 node_modules/
 .next/
 .vercel/
+# MediaPipe assets are fetched at build time
+/public/mediapipe/

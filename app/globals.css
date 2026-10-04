@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fffbf5;
+  --foreground: #1c1917;
+  --brand: #7c2d12;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --font-sans: var(--font-sarabun);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sarabun), sans-serif;
+  font-size: 18px;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold text-white bg-brand active:opacity-80 disabled:opacity-40;
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold border border-stone-300 bg-white active:bg-stone-100 disabled:opacity-40;
+}
+.card {
+  @apply rounded-2xl bg-white shadow-sm border border-stone-200 p-4;
+}
+.input {
+  @apply w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-lg;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}
