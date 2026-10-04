@@ -38,10 +38,6 @@
     "**/*.mts"
   ],
   "exclude": [
-    "node_modules",
-    "vitest.config.mts",
-    "postcss.config.mjs",
-    "next.config.ts",
-    "eslint.config.mjs"
+    "node_modules"
   ]
 }
