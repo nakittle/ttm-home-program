@@ -20,17 +20,21 @@ body {
   font-size: 18px;
 }
 
-.btn {
-  @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold text-white bg-brand active:opacity-80 disabled:opacity-40;
-}
-.btn-ghost {
-  @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold border border-stone-300 bg-white active:bg-stone-100 disabled:opacity-40;
-}
-.card {
-  @apply rounded-2xl bg-white shadow-sm border border-stone-200 p-4;
-}
-.input {
-  @apply w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-lg;
+/* In the components layer so utilities on the same element (bg-red-100, border-red-500, py-1 …) win.
+   Unlayered, these rules beat every utility and selected answers / red buttons looked unchanged. */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold text-white bg-brand active:opacity-80 disabled:opacity-40;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold border border-stone-300 bg-white active:bg-stone-100 disabled:opacity-40;
+  }
+  .card {
+    @apply rounded-2xl bg-white shadow-sm border border-stone-200 p-4;
+  }
+  .input {
+    @apply w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-lg;
+  }
 }
 
 @media print {

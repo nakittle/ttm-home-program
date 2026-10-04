@@ -14,11 +14,11 @@ export function YesNoQuestions({ rules, onDone }: { rules: RedFlagRule[]; onDone
         <div key={r.id} className="card space-y-2">
           <p className="text-lg">{r.question_th}</p>
           <div className="flex gap-2">
-            <button className={`btn-ghost flex-1 text-xl ${answers[r.id] === true ? "bg-red-100 border-red-500" : ""}`} onClick={() => setAnswers((a) => ({ ...a, [r.id]: true }))}>
-              ใช่
+            <button aria-pressed={answers[r.id] === true} className={`btn-ghost flex-1 text-xl ${answers[r.id] === true ? "bg-red-100 border-2 border-red-500" : ""}`} onClick={() => setAnswers((a) => ({ ...a, [r.id]: true }))}>
+              {answers[r.id] === true && "✓ "}ใช่
             </button>
-            <button className={`btn-ghost flex-1 text-xl ${answers[r.id] === false ? "bg-green-100 border-green-500" : ""}`} onClick={() => setAnswers((a) => ({ ...a, [r.id]: false }))}>
-              ไม่ใช่
+            <button aria-pressed={answers[r.id] === false} className={`btn-ghost flex-1 text-xl ${answers[r.id] === false ? "bg-green-100 border-2 border-green-500" : ""}`} onClick={() => setAnswers((a) => ({ ...a, [r.id]: false }))}>
+              {answers[r.id] === false && "✓ "}ไม่ใช่
             </button>
             <button className="btn-ghost" aria-label="ฟังคำถาม" onClick={() => speak(r.question_th)}>
               🔊
