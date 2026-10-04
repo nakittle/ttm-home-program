@@ -1,5 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import {
+  Armchair, Camera, CameraOff, Check, CircleAlert, CircleCheck, Hand, PersonStanding, RefreshCw, Repeat, ShieldCheck, Timer, UserRound, Volume2, Zap, ZoomIn,
+  type LucideIcon,
+} from "lucide-react";
 import { CUES, THAI_NUMBERS } from "@/lib/audio-keys";
 import { speak, stopSpeaking } from "@/lib/audio";
 import { creditLine, sheetUrl } from "@/lib/content";
@@ -28,6 +32,7 @@ type Mode = "intro" | "loading" | "setup" | "calibrate" | "run" | "button";
 /** One posture: instructions → camera (setup, calibrate, hold timer) or the "ทำแล้ว" fallback. */
 export function PostureRunner({ posture, onDone, onButton }: { posture: Posture; onDone: (r: PostureResult) => void; onButton: (b: DuringButton) => void }) {
   const det = posture.detector;
+  const PositionIcon = posture.position === "standing" ? PersonStanding : UserRound;
   const [mode, setMode] = useState<Mode>("intro");
   const [view, setView] = useState<SessionState>(() => startSession(det));
   const [inPose, setInPose] = useState(false);
@@ -209,35 +214,101 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
   const progress = Math.min(1, view.heldMs / holdMs);
 
   return (
-    <div className="space-y-3">
-      <h2 className="text-2xl font-bold">{posture.name_th}</h2>
-      <p className="text-sm text-stone-600">
-        {POSITION_TH[posture.position]} · {det.mode === "hold" ? `ค้าง ${det.hold_seconds} วินาที` : "นับเป็นครั้ง"} · {det.units}{" "}
-        {det.sides === "alternate" ? "ครั้ง (สลับซ้าย-ขวา)" : "รอบ"}
-        {det.difficulty === "hard" && " · กล้องช่วยนับ (ทดลอง)"}
-      </p>
+    <div className="space-y-6 pb-52">
+      <header className="space-y-2">
+        <h1 className="font-display text-[31px] font-bold leading-[1.35]">{posture.name_th}</h1>
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-lg text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <PositionIcon aria-hidden className="h-6 w-6 text-brand" strokeWidth={2} />
+            {POSITION_TH[posture.position]}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Timer aria-hidden className="h-6 w-6 text-brand" strokeWidth={2} />
+            {det.mode === "hold" ? `ค้าง ${det.hold_seconds} วินาที` : "นับเป็นครั้ง"}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Repeat aria-hidden className="h-6 w-6 text-brand" strokeWidth={2} />
+            {det.units} {det.sides === "alternate" ? "ครั้ง (สลับซ้าย-ขวา)" : "รอบ"}
+          </span>
+          {det.difficulty === "hard" && <span>กล้องช่วยนับ (ทดลอง)</span>}
+        </p>
+      </header>
+
+      {mode === "button" && cameraFailed && <p className="text-xl font-semibold text-indigo">ใช้กล้องไม่ได้ ใช้ปุ่มแทน</p>}
+      {mode === "button" && <ButtonMode posture={posture} onDone={report} />}
 
       {(mode === "intro" || mode === "button") && (
         <>
-          <a href={`/postures/${posture.id}.webp`} target="_blank" rel="noreferrer">
-            <img src={`/postures/${posture.id}.webp`} alt={`แผ่นท่า${posture.name_th}`} className="w-full rounded-xl border" />
+          {standing && (
+            <p className="flex items-start gap-3 rounded-3xl border-2 border-gold bg-gold-tint p-5 text-[22px] font-semibold leading-[1.5]">
+              <Armchair aria-hidden className="mt-0.5 h-8 w-8 shrink-0" strokeWidth={2} />
+              {CUES.chair_nearby}
+            </p>
+          )}
+          <a href={`/postures/${posture.id}.webp`} target="_blank" rel="noreferrer" className="block space-y-2">
+            <img src={`/postures/${posture.id}.webp`} alt={`แผ่นท่า${posture.name_th}`} className="w-full rounded-2xl border-2 border-line" />
+            <span className="flex items-center gap-2 text-base text-indigo">
+              <ZoomIn aria-hidden className="h-5 w-5" strokeWidth={2} />
+              แตะภาพเพื่อดูแผ่นเต็ม
+            </span>
           </a>
-          <ol className="list-decimal pl-6 space-y-1">
-            {posture.steps_th.map((s, i) => (
-              <li key={i}>
-                {s}{" "}
-                <button className="text-brand" aria-label="ฟัง" onClick={() => speak(s)}>
-                  🔊
-                </button>
-              </li>
-            ))}
-          </ol>
-          {standing && <p className="card border-2 border-yellow-400 bg-yellow-50 text-lg font-semibold">🪑 {CUES.chair_nearby}</p>}
-          {posture.note_th && <p className="text-sm text-stone-600">{posture.note_th}</p>}
-          {posture.cautions_th.length > 0 && <p className="text-sm text-orange-800">ข้อควรระวัง: {posture.cautions_th.join(" / ")}</p>}
-          <p className="text-xs text-stone-500">
+          {/* Start sits right under the sheet, which already shows the steps in pictures; the text steps follow for reference. */}
+          {mode === "intro" && (
+            <div className="grid gap-3">
+              <button className="btn min-h-16 text-[22px]" onClick={startCamera}>
+                <Camera aria-hidden className="h-7 w-7" strokeWidth={2} />
+                เริ่มโดยใช้กล้องช่วยนับ
+              </button>
+              <button className="btn-ghost text-xl" onClick={useButtons}>
+                <CameraOff aria-hidden className="h-7 w-7" strokeWidth={2} />
+                ไม่ใช้กล้อง
+              </button>
+              <p className="flex items-start gap-2 text-base text-muted">
+                <ShieldCheck aria-hidden className="mt-1 h-5 w-5 shrink-0 text-brand" strokeWidth={2} />
+                ภาพจากกล้องประมวลผลในมือถือเท่านั้น ไม่ถูกบันทึกหรือส่งออก
+              </p>
+            </div>
+          )}
+          <section aria-labelledby="steps-heading" className="space-y-3">
+            <h2 id="steps-heading" className="text-[25px] font-semibold leading-[1.35]">ขั้นตอน</h2>
+            <ol className="divide-y-2 divide-line rounded-3xl border-2 border-line bg-surface">
+              {posture.steps_th.map((s, i) => (
+                <li key={i} className="flex gap-3 p-4">
+                  <span aria-hidden className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-lg font-bold text-white">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 space-y-2">
+                    <p className="text-xl leading-[1.7]">{s}</p>
+                    <button
+                      className="inline-flex min-h-14 items-center gap-2 rounded-2xl border-2 border-indigo/70 px-4 text-lg font-semibold text-indigo active:bg-indigo-tint"
+                      aria-label={`ฟังขั้นที่ ${i + 1}`}
+                      onClick={() => speak(s)}
+                    >
+                      <Volume2 aria-hidden className="h-6 w-6" strokeWidth={2} />
+                      ฟัง
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+          {posture.note_th && <p className="text-lg text-muted">{posture.note_th}</p>}
+          {posture.cautions_th.length > 0 && (
+            <div className="space-y-2 rounded-3xl border-2 border-line p-5">
+              <p className="flex items-center gap-2 text-xl font-semibold">
+                <CircleAlert aria-hidden className="h-6 w-6 text-indigo" strokeWidth={2} />
+                ข้อควรระวัง
+              </p>
+              <ul className="list-disc space-y-1 pl-6 text-lg">
+                {posture.cautions_th.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="text-base leading-[1.6] text-muted">
             {creditLine(posture)} ·{" "}
-            <a className="underline" href={sheetUrl(posture.source.sheet)} target="_blank" rel="noreferrer">
+            <a className="font-semibold text-indigo underline underline-offset-4" href={sheetUrl(posture.source.sheet)} target="_blank" rel="noreferrer">
               ดูต้นฉบับ
             </a>{" "}
             · เสียงอ่านสร้างด้วย AI (Gemini) จากข้อความในแผ่นของกรมฯ
@@ -245,76 +316,70 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
         </>
       )}
 
-      {mode === "intro" && (
-        <div className="grid gap-2">
-          <button className="btn text-xl" onClick={startCamera}>
-            📷 เริ่มโดยใช้กล้องช่วยนับ
-          </button>
-          <button className="btn-ghost" onClick={useButtons}>
-            ไม่ใช้กล้อง
-          </button>
-          <p className="text-xs text-stone-500">ภาพจากกล้องประมวลผลในมือถือเท่านั้น ไม่ถูกบันทึกหรือส่งออก</p>
-        </div>
-      )}
-
       {(mode === "loading" || mode === "setup" || mode === "calibrate" || mode === "run") && (
-        <div className="space-y-2">
-          {mode === "loading" && <p>กำลังเตรียมกล้อง…</p>}
-          {mode !== "loading" && <p className="text-sm">{setupTip(posture)}</p>}
-          <div className="relative w-full overflow-hidden rounded-xl bg-black">
+        <div className="space-y-3">
+          {mode === "loading" && <p className="text-xl">กำลังเตรียมกล้อง…</p>}
+          {mode !== "loading" && <p className="text-lg">{setupTip(posture)}</p>}
+          <div className="relative w-full overflow-hidden rounded-3xl bg-foreground">
             {/* iOS: keep the video visible (never display:none) */}
             <video ref={videoRef} className="w-full -scale-x-100" playsInline muted />
             <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
             {mode === "run" && (
-              <div className="absolute left-3 top-3 rounded-xl bg-white/90 px-3 py-2 text-lg font-semibold">
-                {inPose ? "✅ อยู่ในท่า" : "ยังไม่อยู่ในท่า"} · {view.unitsDone}/{view.unitsTarget}
+              <div className={`absolute left-3 top-3 rounded-2xl border-2 bg-surface px-3 py-2 text-xl font-semibold ${inPose ? "border-brand text-brand" : "border-line text-foreground"}`}>
+                {inPose && <CircleCheck aria-hidden className="mr-1.5 inline h-6 w-6 align-[-4px]" strokeWidth={2.5} />}
+                {inPose ? "อยู่ในท่า" : "ยังไม่อยู่ในท่า"} · {view.unitsDone}/{view.unitsTarget}
                 {view.side && ` · ${SIDE_TH[view.side]}`}
               </div>
             )}
             {mode === "run" && det.mode === "hold" && (
-              <svg className="absolute right-3 top-3" width="88" height="88" viewBox="0 0 88 88" aria-label="เวลาค้างท่า">
-                <circle cx="44" cy="44" r="38" stroke="#ffffff88" strokeWidth="10" fill="none" />
+              <svg className="absolute right-3 top-3" width="96" height="96" viewBox="0 0 88 88" aria-label="เวลาค้างท่า">
+                <circle cx="44" cy="44" r="38" fill="#1f1b16b3" stroke="#fffdf866" strokeWidth="10" />
                 <circle
-                  cx="44" cy="44" r="38" stroke="#16a34a" strokeWidth="10" fill="none"
+                  cx="44" cy="44" r="38" stroke="#e8bb1f" strokeWidth="10" fill="none" strokeLinecap="round"
                   strokeDasharray={`${2 * Math.PI * 38}`} strokeDashoffset={`${2 * Math.PI * 38 * (1 - progress)}`}
                   transform="rotate(-90 44 44)"
                 />
-                <text x="44" y="52" textAnchor="middle" fontSize="24" fill="white" fontWeight="700">
+                <text x="44" y="53" textAnchor="middle" fontSize="28" fill="white" fontWeight="700">
                   {Math.ceil((holdMs - view.heldMs) / 1000)}
                 </text>
               </svg>
             )}
           </div>
-          {hint && <p className="text-lg font-semibold">{hint}</p>}
-          {mode === "run" && view.phase === "paused" && <p className="text-orange-700">หยุดเวลาไว้ กลับเข้าท่าเพื่อนับต่อ</p>}
-          <p className="text-xs text-stone-500">{fps} ภาพ/วินาที</p>
-          {offerButton ? (
-            <button className="btn-ghost w-full" onClick={useButtons}>
-              กล้องจับไม่ได้? ใช้ปุ่ม “ทำแล้ว” แทน
-            </button>
-          ) : (
-            <button className="btn-ghost w-full text-sm" onClick={useButtons}>
-              ใช้ปุ่มแทน
-            </button>
-          )}
+          {hint && <p className="text-[22px] font-semibold">{hint}</p>}
+          {mode === "run" && view.phase === "paused" && <p className="text-xl font-semibold text-indigo">หยุดเวลาไว้ กลับเข้าท่าเพื่อนับต่อ</p>}
+          <p className="text-base text-muted">{fps} ภาพ/วินาที</p>
+          <button className="btn-ghost w-full text-xl" onClick={useButtons}>
+            <Hand aria-hidden className="h-7 w-7" strokeWidth={2} />
+            {offerButton ? "กล้องจับไม่ได้? ใช้ปุ่ม “ทำแล้ว” แทน" : "ใช้ปุ่มแทน"}
+          </button>
         </div>
       )}
 
-      {mode === "button" && cameraFailed && <p className="text-orange-700">ใช้กล้องไม่ได้ ใช้ปุ่มแทน</p>}
-      {mode === "button" && <ButtonMode posture={posture} onDone={report} />}
 
-      <div className="grid grid-cols-3 gap-2 pt-2">
-        <button className="btn-ghost border-red-400 text-red-800" onClick={() => onButton("sharp_pain")}>
-          ปวดแปล๊บ
-        </button>
-        <button className="btn-ghost border-orange-400 text-orange-800" onClick={() => onButton("dizzy")}>
-          เวียนหัว
-        </button>
-        <button className="btn-ghost border-yellow-500 text-yellow-800" disabled={posture.position !== "standing"} onClick={() => onButton("unsteady")}>
-          เซ
-        </button>
+      {/* Stopping is always one tap away: fixed to the bottom, never scrolled out of reach. */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-line bg-surface">
+        <div className="mx-auto max-w-xl px-4 pt-2 pb-[max(12px,env(safe-area-inset-bottom))]">
+          <p className="mb-2 text-xl font-semibold">รู้สึกผิดปกติ กดหยุดได้ทันที</p>
+          <div className={`grid gap-3 ${standing ? "grid-cols-3" : "grid-cols-2"}`}>
+            <StopButton icon={Zap} label="ปวดแปล๊บ" onClick={() => onButton("sharp_pain")} />
+            <StopButton icon={RefreshCw} label="เวียนหัว" onClick={() => onButton("dizzy")} />
+            {standing && <StopButton icon={PersonStanding} label="เซ" onClick={() => onButton("unsteady")} />}
+          </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+function StopButton({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
+  return (
+    <button
+      className="flex min-h-[72px] flex-col items-center justify-center gap-0.5 rounded-[20px] border-2 border-emergency bg-surface px-1 text-xl font-semibold leading-tight text-emergency active:bg-emergency-tint"
+      onClick={onClick}
+    >
+      <Icon aria-hidden className="h-6 w-6 shrink-0" strokeWidth={2.25} />
+      {label}
+    </button>
   );
 }
 
@@ -323,6 +388,11 @@ function ButtonMode({ posture, onDone }: { posture: Posture; onDone: (r: Posture
   const det = posture.detector;
   const [unit, setUnit] = useState(0);
   const [left, setLeft] = useState<number | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  // The timer sits above the instructions; bring it into view when it replaces the camera buttons further down.
+  useEffect(() => {
+    boxRef.current?.scrollIntoView({ block: "center" });
+  }, []);
   const finish = (secondsHeld: number) =>
     onDone({ posture_id: posture.id, method: "button", units_done: det.units, units_target: det.units, seconds_held: secondsHeld });
 
@@ -345,14 +415,14 @@ function ButtonMode({ posture, onDone }: { posture: Posture; onDone: (r: Posture
 
   const side = det.sides === "alternate" && det.first_side ? (unit % 2 === 0 ? det.first_side : det.first_side === "L" ? "R" : "L") : null;
   return (
-    <div className="card space-y-3">
-      <p className="text-lg">
+    <div ref={boxRef} className="space-y-4 rounded-3xl border-2 border-brand bg-surface p-5">
+      <p className="text-[25px] font-semibold leading-[1.35]">
         ครั้งที่ {Math.min(unit + 1, det.units)} จาก {det.units}
         {side && ` · ${SIDE_TH[side]}`}
       </p>
       {unit < det.units ? (
         <button
-          className="btn w-full text-xl"
+          className="btn min-h-20 w-full font-display text-[28px]"
           disabled={left !== null}
           onClick={() => {
             speak(CUES.start_hold);
@@ -362,11 +432,12 @@ function ButtonMode({ posture, onDone }: { posture: Posture; onDone: (r: Posture
           {left !== null ? `ค้างไว้… ${left}` : det.mode === "hold" ? `เริ่มค้าง ${det.hold_seconds} วินาที` : "เริ่มครั้งนี้"}
         </button>
       ) : (
-        <button className="btn w-full text-xl" onClick={() => finish(det.units * det.hold_seconds)}>
-          ✅ ทำครบแล้ว
+        <button className="btn min-h-20 w-full font-display text-[28px]" onClick={() => finish(det.units * det.hold_seconds)}>
+          <Check aria-hidden className="h-8 w-8" strokeWidth={2.5} />
+          ทำครบแล้ว
         </button>
       )}
-      <button className="btn-ghost w-full" onClick={() => finish(0)}>
+      <button className="btn-ghost w-full text-xl" onClick={() => finish(0)}>
         ทำครบแล้ว (ข้ามตัวจับเวลา)
       </button>
     </div>

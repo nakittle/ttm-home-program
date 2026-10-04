@@ -123,6 +123,18 @@ describe("patient flow", () => {
     expect(store.sessions).toHaveLength(1);
   });
 
+  it("returns the days with a posture done (not all-skipped sessions) for the week strip", async () => {
+    const { body } = await newPlan();
+    const p = params({ code: body.code });
+    await consent(post(`/api/p/${body.code}/consent`, { secret: body.secret }), p);
+    const yesterday = addDays(today, -1);
+    await postSession(post(`/api/p/${body.code}/sessions`, { secret: body.secret, session: session({ performed_on: yesterday }) }), p);
+    const skipped = [{ posture_id: "kae-klon", method: "skipped", units_done: 0, units_target: 3, seconds_held: 0 }];
+    await postSession(post(`/api/p/${body.code}/sessions`, { secret: body.secret, session: session({ client_id: "client-0002", results: skipped }) }), p);
+    const plan = (await (await getPlan(post(`/api/p/${body.code}/plan`, { secret: body.secret }), p)).json()) as { done_days: string[] };
+    expect(plan.done_days).toEqual([yesterday]);
+  });
+
   it("is idempotent on client_id (offline retries)", async () => {
     const { body } = await newPlan();
     const p = params({ code: body.code });

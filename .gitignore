@@ -7,3 +7,9 @@ node_modules/
 /public/mediapipe/
 *.tsbuildinfo
 .vercel
+
+# Impeccable: review captures, decision logs and caches stay local; surfaces/ and design.json are tracked
+/.impeccable/review/
+/.impeccable/questions/
+/.impeccable/hook.cache.json
+/.impeccable/config.local.json

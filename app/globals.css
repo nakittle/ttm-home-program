@@ -1,39 +1,126 @@
 @import "tailwindcss";
 
+/* Thaitone-derived palette (contrast on --background): ink 16:1, muted 8.9:1, brand 8.7:1, indigo 8.4:1.
+   --gold is a fill only (ink on it 9.4:1), never a text colour. --emergency is for stopping and 1669 only. */
 :root {
-  --background: #fffbf5;
-  --foreground: #1c1917;
-  --brand: #7c2d12;
+  --background: #faf7f0;
+  --surface: #fffdf8;
+  --foreground: #1f1b16;
+  --muted: #4a453d;
+  --line: #d9d0bf;
+  --brand: #145139;
+  --brand-deep: #0d3a28;
+  --brand-tint: #e3eee7;
+  --indigo: #16466e;
+  --indigo-tint: #e2eaf3;
+  --gold: #e8bb1f;
+  --gold-tint: #fbf0c8;
+  --emergency: #a51c22;
+  --emergency-tint: #f9e4e2;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
   --color-brand: var(--brand);
-  --font-sans: var(--font-sarabun);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-tint: var(--brand-tint);
+  --color-indigo: var(--indigo);
+  --color-indigo-tint: var(--indigo-tint);
+  --color-gold: var(--gold);
+  --color-gold-tint: var(--gold-tint);
+  --color-emergency: var(--emergency);
+  --color-emergency-tint: var(--emergency-tint);
+  --font-sans: var(--font-looped), "Noto Sans Thai Looped", sans-serif;
+  --font-display: var(--font-plex-thai), var(--font-looped), sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sarabun), sans-serif;
+  font-family: var(--font-looped), "Noto Sans Thai Looped", sans-serif;
   font-size: 18px;
+  line-height: 1.7;
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--foreground);
+}
+
+/* Base layer, so a utility (focus:outline-none on a heading that only receives programmatic focus) can override it. */
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--indigo);
+    outline-offset: 3px;
+  }
 }
 
 /* In the components layer so utilities on the same element (bg-red-100, border-red-500, py-1 …) win.
    Unlayered, these rules beat every utility and selected answers / red buttons looked unchanged. */
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold text-white bg-brand active:opacity-80 disabled:opacity-40;
+    @apply inline-flex min-h-14 items-center justify-center gap-3 rounded-[20px] px-6 py-3 font-semibold text-white bg-brand active:bg-brand-deep disabled:opacity-40;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold border border-stone-300 bg-white active:bg-stone-100 disabled:opacity-40;
+    @apply inline-flex min-h-14 items-center justify-center gap-3 rounded-[20px] px-6 py-3 font-semibold text-brand border-2 border-brand bg-surface active:bg-brand-tint disabled:opacity-40;
   }
   .card {
-    @apply rounded-2xl bg-white shadow-sm border border-stone-200 p-4;
+    @apply rounded-3xl bg-surface border-2 border-line p-5;
   }
   .input {
-    @apply w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-lg;
+    @apply w-full rounded-2xl border-2 border-line bg-surface px-4 py-3 text-lg;
+  }
+
+  /* ผ้าขาวม้า check: indigo warp and weft crossing on green, with a thin gold and ivory thread.
+     Used only as data (a day or a posture done) and as the header selvedge, never behind text. */
+  .weave {
+    background-color: var(--brand);
+    background-image:
+      repeating-linear-gradient(90deg, transparent 0 7px, rgb(250 247 240 / 0.7) 7px 8px, transparent 8px 9px, rgb(232 187 31 / 0.95) 9px 11px, transparent 11px 14px),
+      repeating-linear-gradient(0deg, transparent 0 7px, rgb(250 247 240 / 0.55) 7px 8px, transparent 8px 9px, rgb(232 187 31 / 0.75) 9px 11px, transparent 11px 14px),
+      repeating-linear-gradient(90deg, rgb(22 70 110 / 0.95) 0 6px, transparent 6px 14px),
+      repeating-linear-gradient(0deg, rgb(22 70 110 / 0.7) 0 6px, transparent 6px 14px);
+  }
+  /* The one authored moment: a thread weaves in from the left when its posture or day is done. */
+  .weave-in {
+    animation: weave-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  /* A warp not yet woven: pale vertical threads only. */
+  .warp {
+    background-color: var(--surface);
+    background-image: repeating-linear-gradient(90deg, var(--line) 0 2px, transparent 2px 8px);
+  }
+  .selvedge {
+    height: 10px;
+    background-color: var(--brand);
+    background-image:
+      repeating-linear-gradient(90deg, var(--gold) 0 6px, var(--brand) 6px 12px, var(--indigo) 12px 22px, var(--surface) 22px 24px, var(--indigo) 24px 34px, var(--brand) 34px 40px);
+  }
+}
+
+@keyframes weave-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+html {
+  scrollbar-color: var(--line) var(--background);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

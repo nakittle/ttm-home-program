@@ -1,56 +1,129 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronLeft, ChevronRight, Volume2, X } from "lucide-react";
 import { speak } from "@/lib/audio";
 import type { RedFlagRule } from "@/lib/content/schema";
 import type { Answers } from "@/lib/redflags";
 
-/** Big yes/no buttons, one question per card, each with a "ฟัง" button. */
-export function YesNoQuestions({ rules, onDone }: { rules: RedFlagRule[]; onDone: (a: Answers) => void }) {
-  const [answers, setAnswers] = useState<Answers>({});
-  const complete = rules.every((r) => answers[r.id] !== undefined);
+/** Back + Next row shared by the question screens. Next is the big one; Back is always there when there is somewhere to go. */
+function StepNav({ onBack, onNext, nextDisabled, nextLabel = "ถัดไป" }: { onBack?: () => void; onNext: () => void; nextDisabled: boolean; nextLabel?: string }) {
   return (
-    <div className="space-y-3">
-      {rules.map((r) => (
-        <div key={r.id} className="card space-y-2">
-          <p className="text-lg">{r.question_th}</p>
-          <div className="flex gap-2">
-            <button aria-pressed={answers[r.id] === true} className={`btn-ghost flex-1 text-xl ${answers[r.id] === true ? "bg-red-100 border-2 border-red-500" : ""}`} onClick={() => setAnswers((a) => ({ ...a, [r.id]: true }))}>
-              {answers[r.id] === true && "✓ "}ใช่
-            </button>
-            <button aria-pressed={answers[r.id] === false} className={`btn-ghost flex-1 text-xl ${answers[r.id] === false ? "bg-green-100 border-2 border-green-500" : ""}`} onClick={() => setAnswers((a) => ({ ...a, [r.id]: false }))}>
-              {answers[r.id] === false && "✓ "}ไม่ใช่
-            </button>
-            <button className="btn-ghost" aria-label="ฟังคำถาม" onClick={() => speak(r.question_th)}>
-              🔊
-            </button>
-          </div>
-        </div>
-      ))}
-      <button className="btn w-full text-xl" disabled={!complete} onClick={() => onDone(answers)}>
-        ถัดไป
+    <div className="grid grid-cols-[auto_1fr] gap-3 pt-2">
+      {onBack ? (
+        <button className="btn-ghost min-h-16 px-4 text-xl" onClick={onBack}>
+          <ChevronLeft aria-hidden className="h-7 w-7" strokeWidth={2} />
+          ย้อนกลับ
+        </button>
+      ) : (
+        <span />
+      )}
+      <button className="btn min-h-16 text-[22px]" disabled={nextDisabled} onClick={onNext}>
+        {nextLabel}
+        <ChevronRight aria-hidden className="h-7 w-7" strokeWidth={2} />
       </button>
     </div>
   );
 }
 
-/** 0–10 pain scale with big buttons. */
-export function PainScale({ title, onDone }: { title: string; onDone: (v: number) => void }) {
-  const [v, setV] = useState<number | null>(null);
-  const color = (n: number) => (n <= 3 ? "bg-green-100" : n <= 6 ? "bg-yellow-100" : "bg-red-100");
+/**
+ * Symptom questions, one per screen, each with a listen button. `onBack` is called from the first question;
+ * `onIndex` reports "question i of n" so the page header can show where the patient is.
+ */
+export function YesNoQuestions({
+  rules,
+  onDone,
+  onBack,
+  onIndex,
+}: {
+  rules: RedFlagRule[];
+  onDone: (a: Answers) => void;
+  onBack?: () => void;
+  onIndex?: (i: number, n: number) => void;
+}) {
+  const [answers, setAnswers] = useState<Answers>({});
+  const [i, setI] = useState(0);
+  const questionRef = useRef<HTMLHeadingElement>(null);
+  const moved = useRef(false);
+  // After Next/Back, move focus to the new question so a screen reader reads it (not on first show).
+  useEffect(() => {
+    if (moved.current) questionRef.current?.focus();
+    moved.current = true;
+  }, [i]);
+  useEffect(() => {
+    onIndex?.(i, rules.length);
+  }, [i, rules.length, onIndex]);
+  const r = rules[i];
+  if (!r) return null;
+  const answer = answers[r.id];
+  const last = i === rules.length - 1;
+  const set = (v: boolean) => setAnswers((a) => ({ ...a, [r.id]: v }));
   return (
-    <div className="card space-y-3">
-      <p className="text-lg font-semibold">{title}</p>
-      <p className="text-sm text-stone-600">0 = ไม่ปวดเลย · 10 = ปวดมากที่สุด</p>
-      <div className="grid grid-cols-6 gap-2">
+    <div className="space-y-5">
+      <h1 key={r.id} ref={questionRef} tabIndex={-1} className="text-[24px] font-semibold leading-[1.6] focus:outline-none">
+        {r.question_th}
+      </h1>
+      <button className="btn-ghost w-full border-indigo/70 text-xl text-indigo active:bg-indigo-tint" onClick={() => speak(r.question_th)}>
+        <Volume2 aria-hidden className="h-7 w-7" strokeWidth={2} />
+        ฟังคำถาม
+      </button>
+      <div className="grid grid-cols-2 gap-3" role="group" aria-label="คำตอบ">
+        <button
+          aria-pressed={answer === true}
+          className={`flex min-h-20 items-center justify-center gap-2 rounded-[20px] border-2 text-[25px] font-semibold ${
+            answer === true ? "border-emergency bg-emergency text-white" : "border-emergency/60 bg-surface text-emergency"
+          }`}
+          onClick={() => set(true)}
+        >
+          <Check aria-hidden className="h-8 w-8" strokeWidth={2.5} />
+          ใช่
+        </button>
+        <button
+          aria-pressed={answer === false}
+          className={`flex min-h-20 items-center justify-center gap-2 rounded-[20px] border-2 text-[25px] font-semibold ${
+            answer === false ? "border-brand bg-brand text-white" : "border-brand/60 bg-surface text-brand"
+          }`}
+          onClick={() => set(false)}
+        >
+          <X aria-hidden className="h-8 w-8" strokeWidth={2.5} />
+          ไม่ใช่
+        </button>
+      </div>
+      <StepNav
+        onBack={i > 0 ? () => setI(i - 1) : onBack}
+        nextDisabled={answer === undefined}
+        onNext={() => (last ? onDone(answers) : setI(i + 1))}
+      />
+    </div>
+  );
+}
+
+const PAIN_WORD: Record<number, string> = { 0: "ไม่ปวดเลย", 5: "ปวดปานกลาง", 10: "ปวดมากที่สุด" };
+
+/** 0–10 pain scale with big numbers; the chosen number stays filled. */
+export function PainScale({ title, onDone, onBack }: { title: string; onDone: (v: number) => void; onBack?: () => void }) {
+  const [v, setV] = useState<number | null>(null);
+  // Tint deepens with the number: calm green, pale gold, deeper gold. Red stays reserved for stopping and 1669.
+  const tone = (n: number) => (n <= 3 ? "bg-brand-tint" : n <= 6 ? "bg-gold-tint" : "bg-gold/55");
+  return (
+    <div className="space-y-5">
+      <h1 className="font-display text-[31px] font-semibold leading-[1.35]">{title}</h1>
+      <p className="text-muted">0 = ไม่ปวดเลย · 10 = ปวดมากที่สุด</p>
+      <div className="grid grid-cols-4 gap-3" role="group" aria-label="ระดับปวด">
         {Array.from({ length: 11 }, (_, n) => (
-          <button key={n} className={`rounded-xl border-2 py-3 text-xl font-bold ${color(n)} ${v === n ? "border-stone-900" : "border-transparent"}`} onClick={() => setV(n)}>
+          <button
+            key={n}
+            aria-pressed={v === n}
+            aria-label={PAIN_WORD[n] ? `${n} ${PAIN_WORD[n]}` : String(n)}
+            className={`flex min-h-20 items-center justify-center rounded-[20px] border-2 font-display text-[34px] font-bold leading-none ${
+              v === n ? "border-foreground bg-foreground text-white" : `border-transparent text-foreground ${tone(n)}`
+            }`}
+            onClick={() => setV(n)}
+          >
             {n}
           </button>
         ))}
       </div>
-      <button className="btn w-full text-xl" disabled={v === null} onClick={() => v !== null && onDone(v)}>
-        ถัดไป
-      </button>
+      <StepNav onBack={onBack} nextDisabled={v === null} onNext={() => v !== null && onDone(v)} />
     </div>
   );
 }

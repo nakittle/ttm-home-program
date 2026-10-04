@@ -1,0 +1,447 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-04T16:24:21.334Z",
+  "title": "Design System: การบ้านหลังนวด",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Ivory Ground",
+        "canonical": "oklch(97.7% 0.010 87)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#26241f",
+          "#423f3a",
+          "#605d57",
+          "#807d77",
+          "#a19e98",
+          "#c7c4bd",
+          "#f1eee7"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Cotton White",
+        "canonical": "oklch(99.4% 0.007 88)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403c",
+          "#5f5d59",
+          "#7f7d79",
+          "#a09e9a",
+          "#c6c4bf",
+          "#f0eee9"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(22.5% 0.011 73)",
+        "tonalRamp": [
+          "#0e0a06",
+          "#27231e",
+          "#433f39",
+          "#625d57",
+          "#817c76",
+          "#a39d97",
+          "#c9c3bc",
+          "#f3ede6"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Faded Ink",
+        "canonical": "oklch(39.3% 0.015 79)",
+        "tonalRamp": [
+          "#0e0a05",
+          "#28231c",
+          "#443f37",
+          "#625d54",
+          "#827c74",
+          "#a39e94",
+          "#c9c3ba",
+          "#f4eee4"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Loom Line",
+        "canonical": "oklch(86.0% 0.025 83)",
+        "tonalRamp": [
+          "#100a02",
+          "#2a2316",
+          "#463f31",
+          "#645d4e",
+          "#847c6d",
+          "#a69d8d",
+          "#ccc3b2",
+          "#f7eddc"
+        ]
+      },
+      "brand": {
+        "role": "primary",
+        "displayName": "เขียวใบแค Leaf Green",
+        "canonical": "oklch(38.9% 0.074 162)",
+        "tonalRamp": [
+          "#001303",
+          "#002e19",
+          "#0c4c34",
+          "#316b51",
+          "#528b70",
+          "#73ad91",
+          "#98d4b6",
+          "#c2ffe0"
+        ]
+      },
+      "brand-deep": {
+        "role": "primary",
+        "displayName": "Deep Leaf",
+        "canonical": "oklch(31.2% 0.059 162)",
+        "tonalRamp": [
+          "#001204",
+          "#002c1b",
+          "#1e4936",
+          "#3d6854",
+          "#5d8873",
+          "#7daa94",
+          "#a2d1b9",
+          "#ccfce3"
+        ]
+      },
+      "brand-tint": {
+        "role": "primary",
+        "displayName": "Leaf Wash",
+        "canonical": "oklch(93.9% 0.015 158)",
+        "tonalRamp": [
+          "#060d09",
+          "#1e2621",
+          "#39423d",
+          "#57605a",
+          "#76807a",
+          "#97a19b",
+          "#bdc7c0",
+          "#e7f2eb"
+        ]
+      },
+      "indigo": {
+        "role": "secondary",
+        "displayName": "คราม Indigo",
+        "canonical": "oklch(38.3% 0.085 247)",
+        "tonalRamp": [
+          "#00082c",
+          "#00254a",
+          "#12426a",
+          "#33618b",
+          "#5282ae",
+          "#73a3d1",
+          "#98caf9",
+          "#c1f5ff"
+        ]
+      },
+      "indigo-tint": {
+        "role": "secondary",
+        "displayName": "Indigo Wash",
+        "canonical": "oklch(93.4% 0.015 251)",
+        "tonalRamp": [
+          "#070c11",
+          "#1f252b",
+          "#3a4048",
+          "#585e66",
+          "#777e86",
+          "#989fa8",
+          "#bdc5ce",
+          "#e7eff8"
+        ]
+      },
+      "gold": {
+        "role": "tertiary",
+        "displayName": "รงทอง Turmeric Gold",
+        "canonical": "oklch(80.9% 0.159 90)",
+        "tonalRamp": [
+          "#210000",
+          "#401700",
+          "#5f3600",
+          "#805500",
+          "#a17600",
+          "#c49800",
+          "#ecbe26",
+          "#ffea6a"
+        ]
+      },
+      "gold-tint": {
+        "role": "tertiary",
+        "displayName": "Gold Wash",
+        "canonical": "oklch(95.4% 0.053 94)",
+        "tonalRamp": [
+          "#120a00",
+          "#2c2300",
+          "#493f1c",
+          "#675d3a",
+          "#877d59",
+          "#a99e79",
+          "#cfc49e",
+          "#faefc7"
+        ]
+      },
+      "emergency": {
+        "role": "emergency",
+        "displayName": "Stop Red",
+        "canonical": "oklch(46.8% 0.171 25)",
+        "tonalRamp": [
+          "#360000",
+          "#5e0000",
+          "#830001",
+          "#a92126",
+          "#d04945",
+          "#f76c66",
+          "#ff938a",
+          "#ffc3b8"
+        ]
+      },
+      "emergency-tint": {
+        "role": "emergency",
+        "displayName": "Stop Wash",
+        "canonical": "oklch(93.5% 0.023 24)",
+        "tonalRamp": [
+          "#140707",
+          "#2e201e",
+          "#4b3b3a",
+          "#6a5957",
+          "#8b7876",
+          "#ad9997",
+          "#d3bfbd",
+          "#fee9e7"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Home title only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles, shell product name, success headline, 1669 button."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Pain scale numbers 0–10."
+      },
+      "action": {
+        "displayName": "Action",
+        "purpose": "Labels on the largest primary buttons, display face."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings, yes/no labels, repetition counter."
+      },
+      "question": {
+        "displayName": "Question",
+        "purpose": "The symptom question, set as the screen h1."
+      },
+      "body-lg": {
+        "displayName": "Body large",
+        "purpose": "Flag messages, panel values, emphasised notices."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Patient base text, looped face."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Metadata lines, dt labels, day labels."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Credits, AI-voice note, privacy notes. The patient floor."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "weave-in",
+        "value": "700ms cubic-bezier(0.16, 1, 0.3, 1); clip-path inset(0 100% 0 0) to inset(0 0 0 0)",
+        "purpose": "The single authored motion: a done thread or today's cell weaves in left to right."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation-duration and transition-duration 0.01ms under prefers-reduced-motion: reduce",
+        "purpose": "Threads appear already woven."
+      }
+    ],
+    "focus": [
+      {
+        "name": "focus-ring",
+        "value": "outline: 3px solid var(--indigo); outline-offset: 3px",
+        "purpose": "Global keyboard focus; gold outline on the green header."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "column",
+        "value": "576px max-width, centred, 20px side padding at every width"
+      }
+    ],
+    "scope": "Recorded from the patient flow /p/[code]. /clinic, /clinic/slip and /dtam share the tokens but have not been restyled into this world."
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one big way to start today: solid Leaf Green, 76px, display-face label with an outline icon.",
+      "html": "<button class=\"ds-btn-primary\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><polygon points=\"6 3 20 12 6 21 6 3\" fill=\"currentColor\"/></svg>เริ่มทำการบ้านวันนี้</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 12px; border-radius: 20px; padding: 12px 24px; font-weight: 600; cursor: pointer; width: 100%; font-family: var(--font-plex-thai, \"IBM Plex Sans Thai\"), var(--font-looped, \"IBM Plex Sans Thai Looped\"), sans-serif; min-height: 76px; font-size: 28px; color: #fff; background: var(--brand, #145139); border: none; } .ds-btn-primary:active { background: var(--brand-deep, #0d3a28); } .ds-btn-primary:disabled { opacity: 0.4; } .ds-btn-primary:focus-visible { outline: 3px solid var(--indigo, #16466e); outline-offset: 3px; }"
+    },
+    {
+      "name": "Step Navigation",
+      "kind": "button",
+      "refersTo": "button-step",
+      "description": "Back (ghost) and Next (primary, 64px) under every question; Next stays disabled until an answer is chosen.",
+      "html": "<div class=\"ds-stepnav\"><button class=\"ds-btn-ghost\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"/></svg>ย้อนกลับ</button><button class=\"ds-btn-next\">ถัดไป<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></button></div>",
+      "css": ".ds-stepnav { display: grid; grid-template-columns: auto 1fr; gap: 12px; font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; } .ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 12px; border-radius: 20px; padding: 12px 24px; font-weight: 600; cursor: pointer; width: 100%; min-height: 64px; padding: 12px 16px; font-size: 20px; color: var(--brand, #145139); background: var(--surface, #fffdf8); border: 2px solid var(--brand, #145139); font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; } .ds-btn-ghost:active { background: var(--brand-tint, #e3eee7); } .ds-btn-next { display: inline-flex; align-items: center; justify-content: center; gap: 12px; border-radius: 20px; padding: 12px 24px; font-weight: 600; cursor: pointer; width: 100%; min-height: 64px; font-size: 22px; color: #fff; background: var(--brand, #145139); border: none; font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; } .ds-btn-next:active { background: var(--brand-deep, #0d3a28); } .ds-btn-next:disabled { opacity: 0.4; } .ds-btn-ghost:focus-visible { outline: 3px solid var(--indigo, #16466e); outline-offset: 3px; } .ds-btn-next:focus-visible { outline: 3px solid var(--indigo, #16466e); outline-offset: 3px; }"
+    },
+    {
+      "name": "Listen Button",
+      "kind": "button",
+      "refersTo": "button-listen",
+      "description": "Indigo ghost button that reads the question or step aloud; one per question and per step.",
+      "html": "<button class=\"ds-btn-listen\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z\"/><path d=\"M16 9a5 5 0 0 1 0 6\"/><path d=\"M19.364 18.364a9 9 0 0 0 0-12.728\"/></svg>ฟังคำถาม</button>",
+      "css": ".ds-btn-listen { display: inline-flex; align-items: center; justify-content: center; gap: 12px; border-radius: 20px; padding: 12px 24px; font-weight: 600; cursor: pointer; width: 100%; font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; min-height: 56px; font-size: 20px; color: var(--indigo, #16466e); background: var(--surface, #fffdf8); border: 2px solid rgb(22 70 110 / 0.7); } .ds-btn-listen:active { background: var(--indigo-tint, #e2eaf3); } .ds-btn-listen:focus-visible { outline: 3px solid var(--indigo, #16466e); outline-offset: 3px; }"
+    },
+    {
+      "name": "Yes / No Answer Tiles",
+      "kind": "custom",
+      "refersTo": "answer-yes-selected",
+      "description": "80px tiles with icon plus word; the selected tile fills solid (red for yes to a red-flag question, green for no) and stays filled.",
+      "html": "<div class=\"ds-answers\"><button class=\"ds-ans ds-ans-yes\" aria-pressed=\"false\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>ใช่</button><button class=\"ds-ans ds-ans-no is-on\" aria-pressed=\"true\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg>ไม่ใช่</button></div>",
+      "css": ".ds-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; } .ds-ans { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 80px; border-radius: 20px; font-size: 25px; font-weight: 600; background: var(--surface, #fffdf8); cursor: pointer; font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; } .ds-ans svg { width: 32px; height: 32px; } .ds-ans-yes { border: 2px solid rgb(165 28 34 / 0.6); color: var(--emergency, #a51c22); } .ds-ans-yes.is-on { background: var(--emergency, #a51c22); border-color: var(--emergency, #a51c22); color: #fff; } .ds-ans-no { border: 2px solid rgb(20 81 57 / 0.6); color: var(--brand, #145139); } .ds-ans-no.is-on { background: var(--brand, #145139); border-color: var(--brand, #145139); color: #fff; } .ds-ans:focus-visible { outline: 3px solid var(--indigo, #16466e); outline-offset: 3px; }"
+    },
+    {
+      "name": "Stop Bar",
+      "kind": "custom",
+      "refersTo": "button-stop",
+      "description": "Fixed to the bottom during every posture: red-outlined 72px stop buttons, three when the posture is standing.",
+      "html": "<div class=\"ds-stopbar\"><p>รู้สึกผิดปกติ กดหยุดได้ทันที</p><div class=\"ds-stopgrid\"><button class=\"ds-btn-stop\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z\"/></svg>ปวดแปล๊บ</button><button class=\"ds-btn-stop\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/><path d=\"M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16\"/><path d=\"M16 16h5v5\"/></svg>เวียนหัว</button></div></div>",
+      "css": ".ds-stopbar { font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; background: var(--surface, #fffdf8); border-top: 2px solid var(--line, #d9d0bf); padding: 8px 16px 12px; color: var(--foreground, #1f1b16); } .ds-stopbar p { margin: 0 0 8px; font-size: 20px; font-weight: 600; } .ds-stopgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } .ds-btn-stop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 72px; border-radius: 20px; border: 2px solid var(--emergency, #a51c22); background: var(--surface, #fffdf8); color: var(--emergency, #a51c22); font-size: 20px; font-weight: 600; line-height: 1.25; cursor: pointer; font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; } .ds-btn-stop svg { width: 24px; height: 24px; } .ds-btn-stop:active { background: var(--emergency-tint, #f9e4e2); } .ds-btn-stop:focus-visible { outline: 3px solid var(--indigo, #16466e); outline-offset: 3px; }"
+    },
+    {
+      "name": "1669 Message",
+      "kind": "card",
+      "refersTo": "button-1669",
+      "description": "The 1669 outcome: Stop Red frame on Stop Wash, fixed message, and a 76px red call button that is never animated.",
+      "html": "<div class=\"ds-flag-1669\"><p>หยุดทำท่าทันที นั่งหรือนอนพักในที่ปลอดภัย แล้วโทร 1669 เดี๋ยวนี้</p><a class=\"ds-btn-1669\" href=\"tel:1669\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z\"/></svg>โทร 1669</a></div>",
+      "css": ".ds-flag-1669 { font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; display: grid; gap: 16px; padding: 20px; border-radius: 24px; border: 2px solid var(--emergency, #a51c22); background: var(--emergency-tint, #f9e4e2); color: var(--foreground, #1f1b16); } .ds-flag-1669 p { margin: 0; font-size: 25px; font-weight: 600; line-height: 1.6; } .ds-btn-1669 { font-family: var(--font-plex-thai, \"IBM Plex Sans Thai\"), var(--font-looped, \"IBM Plex Sans Thai Looped\"), sans-serif; display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 76px; border-radius: 20px; background: var(--emergency, #a51c22); color: #fff; font-size: 31px; font-weight: 700; text-decoration: none; } .ds-btn-1669 svg { width: 36px; height: 36px; } .ds-btn-1669:active { filter: brightness(0.9); } .ds-btn-1669:focus-visible { outline: 3px solid var(--indigo, #16466e); outline-offset: 3px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat Cotton White panel, 24px corners, 2px Loom Line border, no shadow.",
+      "html": "<dl class=\"ds-card\"><dt>ทำการบ้าน</dt><dd>สัปดาห์ละ 5 วัน เวลา 18:00</dd></dl>",
+      "css": ".ds-card { font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; margin: 0; padding: 20px; border-radius: 24px; background: var(--surface, #fffdf8); border: 2px solid var(--line, #d9d0bf); color: var(--foreground, #1f1b16); } .ds-card dt { font-size: 18px; color: var(--muted, #4a453d); } .ds-card dd { margin: 0; font-size: 22px; font-weight: 600; }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Full-width field: Cotton White, 2px Loom Line, 16px corners, indigo focus outline.",
+      "html": "<input class=\"ds-input\" placeholder=\"รหัสคลินิก\" />",
+      "css": ".ds-input { font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; width: 100%; padding: 12px 16px; font-size: 18px; border-radius: 16px; border: 2px solid var(--line, #d9d0bf); background: var(--surface, #fffdf8); color: var(--foreground, #1f1b16); } .ds-input:focus-visible { outline: 3px solid var(--indigo, #16466e); outline-offset: 3px; }"
+    },
+    {
+      "name": "Shell Header",
+      "kind": "nav",
+      "refersTo": "shell-header",
+      "description": "Solid Leaf Green field with clinic name, plan-code pill and display title, ending in the woven selvedge.",
+      "html": "<header class=\"ds-shell\"><div class=\"ds-shell-in\"><div class=\"ds-shell-row\"><span>ศูนย์สาธิต ก</span><span class=\"ds-code\">UXY-53</span></div><p class=\"ds-shell-title\">การบ้านหลังนวด</p></div><div class=\"ds-selvedge\"></div></header>",
+      "css": ".ds-shell { font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; background: var(--brand, #145139); color: #fff; } .ds-shell-in { padding: 20px; } .ds-shell-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 18px; color: rgb(255 255 255 / 0.9); } .ds-code { border: 2px solid rgb(255 255 255 / 0.6); border-radius: 9999px; padding: 2px 12px; font-weight: 600; color: #fff; } .ds-shell-title { font-family: var(--font-plex-thai, \"IBM Plex Sans Thai\"), var(--font-looped, \"IBM Plex Sans Thai Looped\"), sans-serif; margin: 0; font-size: 31px; font-weight: 700; line-height: 1.3; } .ds-selvedge { height: 10px; background-color: var(--brand, #145139); background-image: repeating-linear-gradient(90deg, var(--gold, #e8bb1f) 0 6px, var(--brand, #145139) 6px 12px, var(--indigo, #16466e) 12px 22px, var(--surface, #fffdf8) 22px 24px, var(--indigo, #16466e) 24px 34px, var(--brand, #145139) 34px 40px); }"
+    },
+    {
+      "name": "Week Cloth",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Seven day cells: woven = done, bare warp = not yet, red strike = stopped for safety, gold ring = today.",
+      "html": "<ol class=\"ds-cloth\"><li><span class=\"ds-day ds-done\"><span class=\"ds-weave\"></span></span>อา</li><li><span class=\"ds-day ds-today\"></span><b>วันนี้</b></li><li><span class=\"ds-day ds-stop\"><span class=\"ds-strike\"></span></span>อ</li><li><span class=\"ds-day\"></span>พ</li><li><span class=\"ds-day\"></span>พฤ</li><li><span class=\"ds-day\"></span>ศ</li><li><span class=\"ds-day\"></span>ส</li></ol>",
+      "css": ".ds-cloth { font-family: var(--font-looped, \"IBM Plex Sans Thai Looped\"), \"Noto Sans Thai Looped\", sans-serif; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; } .ds-cloth li { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 18px; color: var(--muted, #4a453d); } .ds-cloth b { color: var(--foreground, #1f1b16); font-weight: 600; } .ds-day { position: relative; display: block; width: 100%; height: 64px; border-radius: 12px; border: 2px solid var(--line, #d9d0bf); background-color: var(--surface, #fffdf8); background-image: repeating-linear-gradient(90deg, var(--line, #d9d0bf) 0 2px, transparent 2px 8px); } .ds-done { border-color: var(--brand, #145139); background: var(--brand-tint, #e3eee7); } .ds-weave { position: absolute; inset: 0; border-radius: 10px; background-color: var(--brand, #145139); background-image: repeating-linear-gradient(90deg, transparent 0 7px, rgb(250 247 240 / 0.7) 7px 8px, transparent 8px 9px, rgb(232 187 31 / 0.95) 9px 11px, transparent 11px 14px), repeating-linear-gradient(0deg, transparent 0 7px, rgb(250 247 240 / 0.55) 7px 8px, transparent 8px 9px, rgb(232 187 31 / 0.75) 9px 11px, transparent 11px 14px), repeating-linear-gradient(90deg, rgb(22 70 110 / 0.95) 0 6px, transparent 6px 14px), repeating-linear-gradient(0deg, rgb(22 70 110 / 0.7) 0 6px, transparent 6px 14px); animation: ds-weave-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both; } .ds-today { border-color: var(--foreground, #1f1b16); outline: 3px solid var(--gold, #e8bb1f); outline-offset: 2px; } .ds-strike { position: absolute; left: 2px; right: 2px; top: 50%; height: 5px; transform: translateY(-50%) rotate(-20deg); border-radius: 9999px; background: var(--emergency, #a51c22); box-shadow: 0 0 0 2px var(--surface, #fffdf8); } @keyframes ds-weave-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } } @media (prefers-reduced-motion: reduce) { .ds-weave { animation-duration: 0.01ms; } }"
+    },
+    {
+      "name": "Session Warp",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "One thread per posture in the run header: woven = done, dashed = skipped, bare = not yet, gold ring = current.",
+      "html": "<div class=\"ds-warp-bg\"><div class=\"ds-warp\"><span class=\"ds-t ds-t-done\"><span class=\"ds-weave2\"></span></span><span class=\"ds-t ds-t-skip\"></span><span class=\"ds-t ds-t-cur\"></span><span class=\"ds-t\"></span></div></div>",
+      "css": ".ds-warp-bg { background: var(--brand, #145139); padding: 12px 20px; } .ds-warp { display: flex; gap: 6px; } .ds-t { position: relative; flex: 1; height: 14px; overflow: hidden; border-radius: 9999px; border: 2px solid rgb(227 238 231 / 0.6); background: var(--brand-deep, #0d3a28); } .ds-t-done { border-color: var(--gold, #e8bb1f); } .ds-weave2 { position: absolute; inset: 0; background-color: var(--brand, #145139); background-image: repeating-linear-gradient(90deg, transparent 0 7px, rgb(250 247 240 / 0.7) 7px 8px, transparent 8px 9px, rgb(232 187 31 / 0.95) 9px 11px, transparent 11px 14px), repeating-linear-gradient(0deg, transparent 0 7px, rgb(250 247 240 / 0.55) 7px 8px, transparent 8px 9px, rgb(232 187 31 / 0.75) 9px 11px, transparent 11px 14px), repeating-linear-gradient(90deg, rgb(22 70 110 / 0.95) 0 6px, transparent 6px 14px), repeating-linear-gradient(0deg, rgb(22 70 110 / 0.7) 0 6px, transparent 6px 14px); animation: ds-weave-in2 700ms cubic-bezier(0.16, 1, 0.3, 1) both; } .ds-t-skip { border-style: dashed; border-color: rgb(255 255 255 / 0.7); background: transparent; } .ds-t-cur { outline: 2px solid var(--gold, #e8bb1f); outline-offset: 1px; } @keyframes ds-weave-in2 { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } } @media (prefers-reduced-motion: reduce) { .ds-weave2 { animation-duration: 0.01ms; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "ผ้าขาวม้าที่ทอเองทุกวัน (the loincloth you weave yourself, a day at a time)",
+    "overview": "Each day's homework is one thread, and a week of practice weaves a ผ้าขาวม้า check of เขียวใบแค green, คราม indigo, a thin รงทอง gold thread and ivory. The cloth is how the patient sees progress, and it is information, not a score. There are no streaks, rings, badges or points. Around the cloth the surface is quiet. It has an ivory ground, ink text, one 2px border system, generous rounded panels and no shadows. The shell is a solid green field ending in a woven selvedge strip.\n\nOlder Thai eyes and hands set the density. Text is large and set in the looped Thai face, targets are big, and each screen does one thing: one question, one posture, or one outcome. The current item expands and everything else recedes. Safety outranks completion, so stopping is always one tap away, and red belongs only to stopping and 1669.\n\nThe world rejects the white health app with progress rings and badges, the government form, and \"too Thai\" ornament (gold kanok, temple motifs, gold gradients).",
+    "keyCharacteristics": [
+      "Ivory ground, ink text, solid green shell with a woven selvedge along its lower edge.",
+      "The weave appears only as data (done days, session threads) and as the selvedge, never behind text.",
+      "One state-mark vocabulary for days and threads: woven, bare warp, dashed, red strike, gold ring.",
+      "Flat panels with one 2px border system and 20–24px corners. No shadows.",
+      "Looped Thai for everything you read, and the loopless display face only at 28px and above.",
+      "A single authored motion: a thread weaving in."
+    ],
+    "rules": [
+      {
+        "name": "The Red Is For Stopping Rule",
+        "body": "Stop Red appears only on stop controls, the 1669 path, the stopped-day strike, and the yes answer to a red-flag question. A screen with no way to stop has no red.",
+        "section": "colors"
+      },
+      {
+        "name": "The Gold Never Speaks Rule",
+        "body": "Gold is never a text colour. It rings, fills and threads. Ink sits on it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Loops For Reading Rule",
+        "body": "Any text a patient reads as a sentence is set in the looped face. The loopless display face is only for 28px and above.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Clip Rule",
+        "body": "Thai stacks marks above and below the line, so text boxes never get a fixed height or `overflow: hidden`, and line-height never drops below 1.25 on Thai text.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Thing Per Screen Rule",
+        "body": "Each screen holds one question, one posture or one outcome, with Back and Next (Back is omitted only where there is nowhere to go back to). The question itself is the h1; the counter lives in the header, not above the question.",
+        "section": "layout"
+      },
+      {
+        "name": "The Stop Bar Rule",
+        "body": "During a posture the stop controls are fixed at the bottom of the viewport: two buttons, or three when the posture is standing (ปวดแปล๊บ, เวียนหัว, เซ).",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Cloth Rule",
+        "body": "No shadows. If something needs to stand apart, give it a 2px border, a solid field or a tint.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use the weave only as data (a done day, a done posture thread) or as the header selvedge.",
+      "Do mark state with the one vocabulary: woven for done, bare warp for not yet, dashed for skipped, red strike for stopped for safety, gold ring for today or current.",
+      "Do set patient body text at 20px in the looped face, with 1.7 line height.",
+      "Do make primary buttons 64–76px, every other target at least 56px, and the 1669 button at least 72px, with 12px between targets.",
+      "Do pair every lucide outline icon (stroke 2–2.5) with a Thai text label.",
+      "Do give every question and every posture step a listen button in indigo.",
+      "Do keep the stop bar fixed at the bottom for the whole posture.",
+      "Do keep DTAM credit, the \"ดูต้นฉบับ\" link and the AI-voice label under every posture."
+    ],
+    "donts": [
+      "Don't put the check pattern behind text, as a panel texture or as a page background.",
+      "Don't use Stop Red for anything except stopping, 1669, the stopped-day strike and the yes answer to a red-flag question.",
+      "Don't set text in gold.",
+      "Don't add shadows; separate with a 2px border, a solid field or a tint.",
+      "Don't show progress as rings, percentages, streaks, badges or points; the cloth is the only progress display at rest.",
+      "Don't use gold kanok, temple motifs or gold gradients.",
+      "Don't use the loopless display face below 28px.",
+      "Don't add motion beyond the weave-in, and never animate the 1669 button."
+    ]
+  }
+}

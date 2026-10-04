@@ -10,7 +10,10 @@ export const POST = withErrors(async (req: Request, ctx: { params: Promise<{ cod
   if (body instanceof Response) return body;
   const plan = await patientPlan(req, code, body.secret, { allowClosed: true });
   if (plan instanceof Response) return plan;
-  const clinic = await getStore().getClinic(plan.clinic_id);
+  const store = getStore();
+  const [clinic, sessions] = await Promise.all([store.getClinic(plan.clinic_id), store.listSessions({ planIds: [plan.id] })]);
+  // Days with at least one posture actually done, for the week strip on the patient's home screen.
+  const doneDays = [...new Set(sessions.filter((s) => s.results.some((r) => r.method !== "skipped")).map((s) => s.performed_on))].sort();
   return json({
     code: plan.code,
     status: plan.status,
@@ -23,5 +26,6 @@ export const POST = withErrors(async (req: Request, ctx: { params: Promise<{ cod
     consent_at: plan.consent_at,
     clinic: { name: clinic?.name ?? "", phone: clinic?.phone ?? null },
     settings: clinic?.settings ?? { disabled: [], thresholds: {} },
+    done_days: doneDays.slice(-14),
   });
 });
