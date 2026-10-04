@@ -53,9 +53,13 @@ for (const [i, text] of batch.entries()) {
       console.log(`[${i + 1}/${batch.length}] ${key} ${text.slice(0, 40)}`);
       break;
     } catch (e) {
-      if (attempt >= 4) throw e;
-      const wait = 15_000 * attempt; // free tier rate limits: back off
-      console.warn(`retry in ${wait / 1000}s: ${(e as Error).message.slice(0, 120)}`);
+      const msg = (e as Error).message;
+      if (/PerDay/i.test(msg)) throw new Error("daily free-tier quota reached; re-run tomorrow (finished files are kept)");
+      if (attempt >= 8) throw e;
+      // Free tier is limited per minute: wait as long as the server asks (retryDelay), else back off.
+      const asked = Number(/"retryDelay":\s*"(\d+)/.exec(msg)?.[1] ?? 0) * 1000;
+      const wait = Math.min(Math.max(asked + 2_000, 15_000 * attempt), 120_000);
+      console.warn(`rate limited, retry in ${Math.round(wait / 1000)}s`);
       await new Promise((r) => setTimeout(r, wait));
     }
   }
