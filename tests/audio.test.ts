@@ -29,6 +29,22 @@ describe("wav", () => {
     expect(wav.readUInt32LE(24)).toBe(24000);
     expect(wav.readUInt32LE(40)).toBe(480);
   });
+  it("moves a trailing C2PA chunk out of the audio data so it is not played as noise", () => {
+    // Gemini TTS appends a RIFF-style "C2PA" chunk (id + LE size + payload) after the raw PCM.
+    const audio = Buffer.alloc(480, 1);
+    const payload = Buffer.from("jumbdata");
+    const size = Buffer.alloc(4);
+    size.writeUInt32LE(payload.length);
+    const wav = pcmToWav(Buffer.concat([audio, Buffer.from("C2PA"), size, payload]), 24000);
+    expect(wav.readUInt32LE(40)).toBe(480); // data chunk holds only the audio
+    expect(wav.toString("ascii", 44 + 480, 44 + 484)).toBe("C2PA");
+    expect(wav.readUInt32LE(44 + 484)).toBe(payload.length);
+    expect(wav.readUInt32LE(4)).toBe(wav.length - 8); // RIFF size covers both chunks
+  });
+  it("keeps audio that merely contains the bytes C2PA", () => {
+    const pcm = Buffer.concat([Buffer.from("C2PA"), Buffer.alloc(476)]);
+    expect(pcmToWav(pcm).readUInt32LE(40)).toBe(480);
+  });
   it("reads the sample rate from the mime type", () => {
     expect(rateFromMime("audio/L16;codec=pcm;rate=16000")).toBe(16000);
     expect(rateFromMime(undefined)).toBe(24000);
