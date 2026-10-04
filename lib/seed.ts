@@ -1,4 +1,4 @@
-import { activeGroups, posturesForGroups } from "@/lib/content";
+import { activeGroups, getPosture, posturesForGroups } from "@/lib/content";
 import { addDays, daysBetween } from "@/lib/aggregate";
 import { hashPin } from "@/lib/auth";
 import { hashSecret, newSecret } from "@/lib/plan";
@@ -65,6 +65,7 @@ export async function seedDemo(store: Store, today: string, pin: string, seed = 
       // Adherence starts high and fades, like real home programmes.
       const p0 = 0.6 + rnd() * 0.35;
       const lastDay = ended ? visit : today;
+      const lastStanding = [...plan.posture_ids].reverse().find((pid) => getPosture(pid).position === "standing") ?? null;
       let pain = 4 + Math.floor(rnd() * 4);
       for (let d = 0; d <= daysBetween(start, lastDay); d++) {
         const on = addDays(start, d);
@@ -85,9 +86,10 @@ export async function seedDemo(store: Store, today: string, pin: string, seed = 
         } else if (r < 0.075) {
           answers.RF04 = true;
           flags.push({ plan_id: plan.id, rule_id: "RF04", level: "stop_and_contact_clinic", posture_id: plan.posture_ids[0] });
-        } else if (r < 0.09) {
+        } else if (r < 0.09 && lastStanding) {
+          // RF11 (unsteady) only makes sense on a standing posture; a plan without one never gets this flag.
           answers.RF11 = true;
-          flags.push({ plan_id: plan.id, rule_id: "RF11", level: "pause_posture", posture_id: plan.posture_ids[plan.posture_ids.length - 1] });
+          flags.push({ plan_id: plan.id, rule_id: "RF11", level: "pause_posture", posture_id: lastStanding });
         }
         const { row } = await store.insertSession({
           plan_id: plan.id, performed_on: on, pain_before: before, pain_after: after, results, answers, client_id: `seed-${code}-${d}`,

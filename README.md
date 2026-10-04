@@ -33,7 +33,8 @@ cp .env.example .env.local      # ใส่ค่าเอง (ดูในไ�
 npm run dev                     # ดาวน์โหลดโมเดล MediaPipe ให้อัตโนมัติ
 ```
 
-ถ้ายังไม่ใส่ Supabase แอปจะใช้ที่เก็บข้อมูลในหน่วยความจำ (หายเมื่อรีสตาร์ต) ใส่ข้อมูลจำลองด้วย:
+ถ้ายังไม่ใส่ Supabase แอปจะใช้ที่เก็บข้อมูลในหน่วยความจำ (หายเมื่อรีสตาร์ต) ใส่ข้อมูลจำลองด้วย
+(`npm run dev` ใช้ได้เลย แต่ถ้ารัน `npm run build && npx next start` ต้องใส่ `ALLOW_MEMORY_STORE=1` ใน `.env.local` ด้วย ไม่เช่นนั้นแอปจะแจ้งว่ายังไม่ได้ตั้งค่า Supabase; บน Vercel ห้ามใส่ตัวนี้):
 
 ```bash
 curl -X POST http://localhost:3000/api/demo/reset -H "content-type: application/json" -d "{\"token\":\"<DEMO_RESET_TOKEN>\"}"
@@ -58,6 +59,8 @@ curl -X POST http://localhost:3000/api/demo/reset -H "content-type: application/
 1. สร้างโปรเจกต์ region Singapore
 2. SQL Editor → วาง `supabase/schema.sql` → Run
 3. Settings → API → คัดลอก URL และ service_role key ใส่ `.env.local` และ Vercel (ห้ามวางใน chat)
+4. Vercel: `vercel.json` ตั้ง Functions ไว้ที่ Singapore (`sin1`) ให้อยู่ใกล้ฐานข้อมูล ตรวจใน Settings → Functions → Region หลัง deploy
+5. ใส่ข้อมูลเดโมด้วย `npm run seed -- --reset` จากเครื่องของทีม (ไม่ใช้ `/api/demo/reset` บน Vercel เพราะช้าเกินสำหรับ serverless ข้ามภูมิภาค)
 
 ## ที่มาของเนื้อหา
 

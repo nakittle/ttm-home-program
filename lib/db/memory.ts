@@ -58,7 +58,12 @@ export class MemoryStore implements Store {
   }
 
   async insertFlags(f: NewFlag[]) {
-    const rows = f.map((x) => ({ ...x, id: randomUUID(), created_at: this.now(), acknowledged_at: null }));
+    // Mirrors unique (session_id, rule_id) in schema.sql, but skips duplicates instead of failing.
+    const rows: FlagRow[] = [];
+    for (const x of f) {
+      const dup = x.session_id !== null && [...this.flags, ...rows].some((y) => y.session_id === x.session_id && y.rule_id === x.rule_id);
+      if (!dup) rows.push({ ...x, id: randomUUID(), created_at: this.now(), acknowledged_at: null });
+    }
     this.flags.push(...rows);
     return rows;
   }

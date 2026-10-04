@@ -287,9 +287,13 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
           {hint && <p className="text-lg font-semibold">{hint}</p>}
           {mode === "run" && view.phase === "paused" && <p className="text-orange-700">หยุดเวลาไว้ กลับเข้าท่าเพื่อนับต่อ</p>}
           <p className="text-xs text-stone-500">{fps} ภาพ/วินาที</p>
-          {offerButton && (
+          {offerButton ? (
             <button className="btn-ghost w-full" onClick={useButtons}>
               กล้องจับไม่ได้? ใช้ปุ่ม “ทำแล้ว” แทน
+            </button>
+          ) : (
+            <button className="btn-ghost w-full text-sm" onClick={useButtons}>
+              ใช้ปุ่มแทน
             </button>
           )}
         </div>

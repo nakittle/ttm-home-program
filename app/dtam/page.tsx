@@ -34,13 +34,19 @@ export default function DtamPage() {
   const [needLogin, setNeedLogin] = useState(false);
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
+    setLoadErr(null);
     const r = await api<DtamSummary>("/api/dtam/summary");
     if (r.status === 401) return setNeedLogin(true);
     if (r.ok) {
       setNeedLogin(false);
       setData(r.data);
+    } else {
+      setNeedLogin(false);
+      setLoadErr(r.status === 429 ? "ขอข้อมูลถี่เกินไป รอสักครู่แล้วลองอีกครั้ง" : (r.message_th ?? "โหลดข้อมูลไม่สำเร็จ ลองอีกครั้ง"));
     }
   }, []);
   useEffect(() => {
@@ -55,16 +61,31 @@ export default function DtamPage() {
           className="card mx-auto max-w-sm space-y-3"
           onSubmit={async (e) => {
             e.preventDefault();
+            if (submitting) return;
+            setSubmitting(true);
+            setErr(null);
             const r = await api("/api/dtam/login", { body: { password } });
-            if (r.ok) load();
+            if (r.ok) await load();
             else setErr(r.message_th ?? "เข้าสู่ระบบไม่สำเร็จ");
+            setSubmitting(false);
           }}
         >
           <h1 className="text-2xl font-bold">ภาพรวมสำหรับกรมฯ</h1>
           <input className="input" type="password" placeholder="รหัสผ่านเดโม" value={password} onChange={(e) => setPassword(e.target.value)} />
           {err && <p className="text-red-700">{err}</p>}
-          <button className="btn w-full">เข้าดู</button>
+          <button className="btn w-full" disabled={submitting}>
+            {submitting ? "กำลังตรวจสอบ…" : "เข้าดู"}
+          </button>
         </form>
+      </main>
+    );
+  if (!data && loadErr)
+    return (
+      <main className="p-10 text-center space-y-3">
+        <p className="text-red-700">{loadErr}</p>
+        <button className="btn" onClick={load}>
+          ลองอีกครั้ง
+        </button>
       </main>
     );
   if (!data) return <main className="p-10 text-center">กำลังโหลด…</main>;

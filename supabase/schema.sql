@@ -52,7 +52,8 @@ create table if not exists flags (
   level text not null check (level in ('call_1669','stop_and_contact_clinic','pause_posture','note_for_next_visit')),
   posture_id text,
   created_at timestamptz not null default now(),
-  acknowledged_at timestamptz
+  acknowledged_at timestamptz,
+  unique (session_id, rule_id)
 );
 
 create index if not exists plans_clinic_idx on plans(clinic_id);

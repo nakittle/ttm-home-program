@@ -6653,7 +6653,7 @@ git commit -m "feat(dtam): aggregate-only overview; Supabase seed/purge scripts;
 2. SQL Editor → วางเนื้อหา `supabase/schema.sql` → Run
 3. Project Settings → API → คัดลอก Project URL และ `service_role` key ใส่ `.env.local` เป็น `SUPABASE_URL` และ `SUPABASE_SERVICE_ROLE_KEY`
 
-แล้ว Claude รัน: `npm run seed`
+แล้ว Claude รัน: `npm run seed -- --reset` จากเครื่องของทีม (ข้อมูลเดโมต้องใส่ด้วยวิธีนี้ ไม่ใช่ผ่าน `/api/demo/reset` ซึ่งช้าเกินไปสำหรับ serverless ข้ามภูมิภาค)
 Expected: `seeded { clinics: 3, plans: 60, sessions: ~440, flags: ~40 }`
 
 - [ ] **Step 2: ผู้ใช้สร้าง Gemini API key** ที่ aistudio.google.com แล้วใส่ `GEMINI_API_KEY` และ `GEMINI_TTS_MODEL` (รุ่น TTS ที่รองรับภาษาไทย ตรวจในเอกสาร Gemini speech generation) ใน `.env.local`
@@ -6676,7 +6676,8 @@ git push -u origin main
 - [ ] **Step 4: ผู้ใช้ import ใน Vercel**
 1. vercel.com → Add New → Project → เลือก repo `home-program`
 2. Environment Variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SESSION_SECRET`, `DTAM_DEMO_PASSWORD`, `DEMO_RESET_TOKEN`, `DEMO_CLINIC_PIN` (ไม่ต้องใส่ Gemini)
-3. Deploy แล้วส่ง URL มา
+3. ตรวจว่า Functions Region = Singapore (sin1) (vercel.json ตั้งไว้แล้ว) ที่ Settings → Functions
+4. Deploy แล้วส่ง URL มา
 
 - [ ] **Step 5: ทดสอบ URL จริง**
 

@@ -202,6 +202,20 @@ describe("patient flow", () => {
     expect(store.plans[0].status).toBe("stopped");
     expect(store.plans[0].consent_at).toBeNull();
   });
+
+  it("'ลบข้อมูลของฉัน' on a completed plan deletes the data but keeps it completed", async () => {
+    const { body } = await newPlan();
+    const p = params({ code: body.code });
+    await consent(post(`/api/p/${body.code}/consent`, { secret: body.secret }), p);
+    await postSession(post(`/api/p/${body.code}/sessions`, { secret: body.secret, session: session({ answers: { RF04: true } }) }), p);
+    await store.updatePlan(store.plans[0].id, { status: "completed", closed_at: "2026-10-01T09:00:00Z" });
+    expect((await deleteMine(post(`/api/p/${body.code}/delete`, { secret: body.secret }), p)).status).toBe(200);
+    expect(store.sessions).toHaveLength(0);
+    expect(store.flags).toHaveLength(0);
+    expect(store.plans[0].status).toBe("completed");
+    expect(store.plans[0].consent_at).toBeNull();
+    expect(store.plans[0].closed_at).toBe("2026-10-01T09:00:00Z");
+  });
 });
 
 describe("clinic dashboard and settings", () => {

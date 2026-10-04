@@ -3,6 +3,7 @@ import { addDays, adherence, clinicDashboard, daysBetween, dtamSummary, MIN_CELL
 import { hashPin, verifyPin } from "@/lib/auth";
 import { MemoryStore } from "@/lib/db/memory";
 import type { PlanRow, SessionRow } from "@/lib/db/types";
+import { getPosture } from "@/lib/content";
 import { seedDemo } from "@/lib/seed";
 
 const plan = (over: Partial<PlanRow> = {}): PlanRow => ({
@@ -99,6 +100,17 @@ describe("demo seed + DTAM summary", () => {
     expect(counts.sessions).toBeGreaterThan(200);
     const again = new MemoryStore();
     expect(await seedDemo(again, today, "246810")).toEqual(counts);
+  });
+
+  it("only puts RF11 (unsteady) on standing postures of the plan", () => {
+    const rf11 = store.flags.filter((f) => f.rule_id === "RF11");
+    expect(rf11.length).toBeGreaterThan(0);
+    for (const f of rf11) {
+      const plan = store.plans.find((p) => p.id === f.plan_id)!;
+      expect(f.posture_id).not.toBeNull();
+      expect(plan.posture_ids).toContain(f.posture_id);
+      expect(getPosture(f.posture_id!).position).toBe("standing");
+    }
   });
 
   it("summarises without any per-patient rows", () => {
