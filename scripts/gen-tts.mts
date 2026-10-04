@@ -6,7 +6,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { allSpokenTexts, textKey } from "../lib/audio-keys.ts";
-import { pcmToWav, rateFromMime } from "../lib/wav.ts";
+import { pcmToMp3 } from "../lib/mp3.mts";
+import { rateFromMime, splitC2pa } from "../lib/wav.ts";
 
 const KEY = process.env.GEMINI_API_KEY;
 const MODEL = process.env.GEMINI_TTS_MODEL;
@@ -35,7 +36,8 @@ async function synth(text: string): Promise<Buffer> {
   const data = (await res.json()) as { candidates?: { content?: { parts?: { inlineData?: { data: string; mimeType?: string } }[] } }[] };
   const part = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData)?.inlineData;
   if (!part) throw new Error("no audio in response");
-  return pcmToWav(Buffer.from(part.data, "base64"), rateFromMime(part.mimeType));
+  // MP3 keeps phone downloads small; Gemini's trailing C2PA chunk is not audio, so drop it before encoding.
+  return pcmToMp3(splitC2pa(Buffer.from(part.data, "base64")).audio, rateFromMime(part.mimeType));
 }
 
 const sample = process.argv.includes("--sample");
@@ -47,8 +49,8 @@ for (const [i, text] of batch.entries()) {
   const key = textKey(text);
   for (let attempt = 1; ; attempt++) {
     try {
-      writeFileSync(path.join(outDir, `${key}.wav`), await synth(text));
-      manifest[key] = `${key}.wav`;
+      writeFileSync(path.join(outDir, `${key}.mp3`), await synth(text));
+      manifest[key] = `${key}.mp3`;
       writeFileSync(manifestPath, JSON.stringify(manifest, null, 1));
       console.log(`[${i + 1}/${batch.length}] ${key} ${text.slice(0, 40)}`);
       break;

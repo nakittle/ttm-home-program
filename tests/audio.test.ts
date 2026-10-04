@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { allSpokenTexts, CUES, textKey, THAI_NUMBERS } from "@/lib/audio-keys";
 import { postures } from "@/lib/content";
+import { pcmToMp3 } from "@/lib/mp3.mts";
 import { pcmToWav, rateFromMime } from "@/lib/wav";
 
 describe("audio keys", () => {
@@ -57,5 +58,18 @@ describe("textKey golden values", () => {
   });
   it("treats decomposed and composed text as the same key (NFC)", () => {
     expect(textKey("é")).toBe(textKey("é"));
+  });
+});
+
+describe("mp3", () => {
+  it("encodes 24 kHz mono PCM to a much smaller MP3", () => {
+    const rate = 24000;
+    const pcm = Buffer.alloc(rate * 2 * 2); // 2 s
+    for (let i = 0; i < rate * 2; i++) pcm.writeInt16LE(Math.round(8000 * Math.sin((2 * Math.PI * 440 * i) / rate)), i * 2);
+    const mp3 = pcmToMp3(pcm, rate);
+    expect(mp3[0]).toBe(0xff); // MPEG frame sync
+    expect(mp3[1] & 0xe0).toBe(0xe0);
+    expect(mp3.length).toBeLessThan(pcm.length / 6);
+    expect(mp3.length).toBeGreaterThan(1000);
   });
 });
