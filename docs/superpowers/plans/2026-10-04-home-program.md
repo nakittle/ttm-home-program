@@ -66,8 +66,8 @@ tests/                   *.test.ts + helpers/
 
 ```bash
 cd C:/HACKATHON
-npx --yes create-next-app@16.3.8 hp-scaffold --ts --app --eslint --tailwind --no-src-dir --import-alias "@/*" --use-npm --no-turbopack --yes
-cp -r hp-scaffold/. home-program/ && rm -rf hp-scaffold
+npx --yes create-next-app@16.3.8 hp-scaffold --ts --app --eslint --tailwind --no-src-dir --import-alias "@/*" --use-npm --no-turbopack --disable-git --yes
+rm -rf hp-scaffold/.git && cp -r hp-scaffold/. home-program/ && rm -rf hp-scaffold
 cd home-program
 git checkout -- .gitignore 2>/dev/null; cat .gitignore
 ```
