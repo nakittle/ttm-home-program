@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# การบ้านหลังนวด (TTM Home Program)
 
-## Getting Started
+ต้นแบบสำหรับ Thai Traditional Medicine Digital Health & AI Hackathon 2026 (Track 4 นวดไทยและเวลเนส)
 
-First, run the development server:
+แพทย์แผนไทยสั่งท่าฤๅษีดัดตนของกรมการแพทย์แผนไทยฯ ให้ผู้ป่วยรายคนผ่าน QR → ผู้ป่วยทำที่บ้านตามเสียงไทย กล้องมือถือช่วยนับเวลาค้างท่า → ผลและธงแดงกลับถึงคลินิกก่อนนัดครั้งถัดไป → กรมฯ เห็นภาพรวมว่ามีคนทำจริงกี่ %
+
+สเปก: `docs/superpowers/specs/2026-10-04-home-program-design.md`
+
+## หน้าเว็บ
+
+| หน้า | ใคร | ทำอะไร |
+|---|---|---|
+| `/clinic` | คลินิก (รหัสคลินิก + PIN) | สร้างแผน, ใบนัด A6 พร้อม QR, dashboard เรียงความเร่งด่วน, รับทราบธง, ตั้งค่ากฎ 🟡/⚪ |
+| `/p/{code}#{secret}` | ผู้ป่วย (สแกน QR) | ยินยอม, เพิ่มลงปฏิทิน, คัดกรองก่อนเริ่ม, ทำท่าพร้อมกล้อง/ปุ่ม, ระดับปวด, ลบข้อมูลของฉัน |
+| `/dtam` | กรมฯ (รหัสผ่านเดโม) | ยอดรวมเท่านั้น ศูนย์ที่มีน้อยกว่า 5 คนไม่แสดงตัวเลข |
+| `/lab` | ทีม | ปรับเกณฑ์กล้อง และบันทึกจุดข้อต่อเป็น JSON |
+
+## AI ในระบบ (อธิบายกรรมการ)
+
+| จุด | AI | Input → Process → Output | ข้อมูลไปไหน |
+|---|---|---|---|
+| นับเวลาค้างท่า | MediaPipe Pose (โมเดลเปิด รันในเบราว์เซอร์) | ภาพกล้อง → จุดข้อต่อ 33 จุด → กฎเรขาคณิตของแต่ละท่า (`content/postures.json`) → "อยู่ในท่า/ยังไม่อยู่" + ตัวนับเวลา | อยู่ในมือถือ ไม่บันทึกภาพ |
+| เสียงไทย | Gemini TTS (สร้างไว้ล่วงหน้าตอน build) | ข้อความจากแผ่นกรมฯ → ไฟล์เสียง | ส่งเฉพาะข้อความของกรมฯ ไม่มีข้อมูลผู้ป่วย |
+| ธงแดง | ไม่ใช่ AI | คำตอบ + ระดับปวด → กฎตายตัว 16 ข้อ (`content/redflags.json`) พร้อมแหล่งอ้างอิง | รันทั้งบนมือถือและเซิร์ฟเวอร์ |
+
+แอปไม่วินิจฉัย ไม่เลือกท่าเอง และไม่ตัดสินว่าท่าถูกหรือผิด แพทย์แผนไทยเป็นผู้สั่งทุกครั้ง
+
+## เริ่มใช้งานบนเครื่อง
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local      # ใส่ค่าเอง (ดูในไฟล์)
+npm run dev                     # ดาวน์โหลดโมเดล MediaPipe ให้อัตโนมัติ
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ถ้ายังไม่ใส่ Supabase แอปจะใช้ที่เก็บข้อมูลในหน่วยความจำ (หายเมื่อรีสตาร์ต) ใส่ข้อมูลจำลองด้วย:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+curl -X POST http://localhost:3000/api/demo/reset -H "content-type: application/json" -d "{\"token\":\"<DEMO_RESET_TOKEN>\"}"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+คลินิกเดโม: `DEMO-A`, `DEMO-B`, `DEMO-C` PIN = `DEMO_CLINIC_PIN`
 
-## Learn More
+## คำสั่ง
 
-To learn more about Next.js, take a look at the following resources:
+| คำสั่ง | ทำอะไร |
+|---|---|
+| `npm test` | เทสต์ทั้งหมด (Vitest) |
+| `npm run typecheck` / `npm run lint` | ตรวจ type และ lint |
+| `npm run build` | build (ดาวน์โหลด MediaPipe ก่อน) |
+| `npm run seed` | ใส่ข้อมูลจำลองลง Supabase (`-- --reset` ล้างก่อน) |
+| `npm run tts -- --sample` | สร้างเสียงตัวอย่าง 3 ไฟล์ (ฟังก่อน) แล้ว `npm run tts` สร้างที่เหลือ |
+| `npm run images` | สร้างภาพแผ่นท่า `public/postures/*.webp` จาก `../research/content/sources` |
+| `npm run purge` | ลบแผนที่ปิดครบ 90 วัน |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Supabase
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. สร้างโปรเจกต์ region Singapore
+2. SQL Editor → วาง `supabase/schema.sql` → Run
+3. Settings → API → คัดลอก URL และ service_role key ใส่ `.env.local` และ Vercel (ห้ามวางใน chat)
 
-## Deploy on Vercel
+## ที่มาของเนื้อหา
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+ท่าและภาพจากแผ่น "ยืดเหยียด...ดัดตน...พ้นโรค ด้วยท่าฤๅษีดัดตน" กรมการแพทย์แผนไทยและการแพทย์ทางเลือก 2569 ชุดที่ 1 (Office syndrome), 2 (หัวไหล่ติด), 6 (เข่าเสื่อม) ทุกท่าในแอปแสดงที่มาและลิงก์ต้นฉบับ กฎธงแดงร่างโดยทีมจากเอกสารกรมฯ (CPG_PCU, แนวทาง IMC แผนไทย) รอผู้ประกอบวิชาชีพรับรอง
