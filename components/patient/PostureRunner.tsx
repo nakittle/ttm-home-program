@@ -240,13 +240,13 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
       {(mode === "intro" || mode === "button") && (
         <>
           {standing && (
-            <p className="flex items-start gap-3 rounded-3xl border-2 border-gold bg-gold-tint p-5 text-[22px] font-semibold leading-[1.5]">
+            <p className="flex items-start gap-3 rounded-3xl border-2 border-gold bg-gold-tint p-5 text-[22px] font-semibold leading-[1.5] shadow-soft">
               <Armchair aria-hidden className="mt-0.5 h-8 w-8 shrink-0" strokeWidth={2} />
               {CUES.chair_nearby}
             </p>
           )}
           <a href={`/postures/${posture.id}.webp`} target="_blank" rel="noreferrer" className="block space-y-2">
-            <img src={`/postures/${posture.id}.webp`} alt={`แผ่นท่า${posture.name_th}`} className="w-full rounded-2xl border-2 border-line" />
+            <img src={`/postures/${posture.id}.webp`} alt={`แผ่นท่า${posture.name_th}`} className="w-full rounded-3xl border border-line shadow-soft" />
             <span className="flex items-center gap-2 text-base text-indigo">
               <ZoomIn aria-hidden className="h-5 w-5" strokeWidth={2} />
               แตะภาพเพื่อดูแผ่นเต็ม
@@ -271,16 +271,16 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
           )}
           <section aria-labelledby="steps-heading" className="space-y-3">
             <h2 id="steps-heading" className="text-[25px] font-semibold leading-[1.35]">ขั้นตอน</h2>
-            <ol className="divide-y-2 divide-line rounded-3xl border-2 border-line bg-surface">
+            <ol className="divide-y divide-line rounded-3xl border border-line bg-surface shadow-soft">
               {posture.steps_th.map((s, i) => (
                 <li key={i} className="flex gap-3 p-4">
-                  <span aria-hidden className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-lg font-bold text-white">
+                  <span aria-hidden className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sage-tint text-lg font-bold text-brand">
                     {i + 1}
                   </span>
                   <div className="flex-1 space-y-2">
                     <p className="text-xl leading-[1.7]">{s}</p>
                     <button
-                      className="inline-flex min-h-14 items-center gap-2 rounded-2xl border-2 border-indigo/70 px-4 text-lg font-semibold text-indigo active:bg-indigo-tint"
+                      className="inline-flex min-h-14 items-center gap-2 rounded-full border-2 border-sage px-5 text-lg font-semibold text-indigo active:bg-indigo-tint"
                       aria-label={`ฟังขั้นที่ ${i + 1}`}
                       onClick={() => speak(s)}
                     >
@@ -294,7 +294,7 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
           </section>
           {posture.note_th && <p className="text-lg text-muted">{posture.note_th}</p>}
           {posture.cautions_th.length > 0 && (
-            <div className="space-y-2 rounded-3xl border-2 border-line p-5">
+            <div className="card space-y-2">
               <p className="flex items-center gap-2 text-xl font-semibold">
                 <CircleAlert aria-hidden className="h-6 w-6 text-indigo" strokeWidth={2} />
                 ข้อควรระวัง
@@ -320,7 +320,7 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
         <div className="space-y-3">
           {mode === "loading" && <p className="text-xl">กำลังเตรียมกล้อง…</p>}
           {mode !== "loading" && <p className="text-lg">{setupTip(posture)}</p>}
-          <div className="relative w-full overflow-hidden rounded-3xl bg-foreground">
+          <div className="relative w-full overflow-hidden rounded-3xl bg-foreground shadow-soft">
             {/* iOS: keep the video visible (never display:none) */}
             <video ref={videoRef} className="w-full -scale-x-100" playsInline muted />
             <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
@@ -333,9 +333,9 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
             )}
             {mode === "run" && det.mode === "hold" && (
               <svg className="absolute right-3 top-3" width="96" height="96" viewBox="0 0 88 88" aria-label="เวลาค้างท่า">
-                <circle cx="44" cy="44" r="38" fill="#1f1b16b3" stroke="#fffdf866" strokeWidth="10" />
+                <circle cx="44" cy="44" r="38" fill="#1f2f25b3" stroke="#fbfcf866" strokeWidth="10" />
                 <circle
-                  cx="44" cy="44" r="38" stroke="#e8bb1f" strokeWidth="10" fill="none" strokeLinecap="round"
+                  cx="44" cy="44" r="38" stroke="#f2c14e" strokeWidth="10" fill="none" strokeLinecap="round"
                   strokeDasharray={`${2 * Math.PI * 38}`} strokeDashoffset={`${2 * Math.PI * 38 * (1 - progress)}`}
                   transform="rotate(-90 44 44)"
                 />
@@ -357,7 +357,7 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
 
 
       {/* Stopping is always one tap away: fixed to the bottom, never scrolled out of reach. */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-line bg-surface">
+      <div className="fixed inset-x-0 bottom-0 z-20 rounded-t-3xl border-t border-line bg-surface shadow-[0_-12px_30px_-18px_rgb(47_79_58/0.45)]">
         <div className="mx-auto max-w-xl px-4 pt-2 pb-[max(12px,env(safe-area-inset-bottom))]">
           <p className="mb-2 text-xl font-semibold">รู้สึกผิดปกติ กดหยุดได้ทันที</p>
           <div className={`grid gap-3 ${standing ? "grid-cols-3" : "grid-cols-2"}`}>
@@ -374,7 +374,7 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
 function StopButton({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
   return (
     <button
-      className="flex min-h-[72px] flex-col items-center justify-center gap-0.5 rounded-[20px] border-2 border-emergency bg-surface px-1 text-xl font-semibold leading-tight text-emergency active:bg-emergency-tint"
+      className="flex min-h-[72px] flex-col items-center justify-center gap-0.5 rounded-3xl border-2 border-emergency bg-surface px-1 text-xl font-semibold leading-tight text-emergency active:bg-emergency-tint"
       onClick={onClick}
     >
       <Icon aria-hidden className="h-6 w-6 shrink-0" strokeWidth={2.25} />
@@ -415,7 +415,7 @@ function ButtonMode({ posture, onDone }: { posture: Posture; onDone: (r: Posture
 
   const side = det.sides === "alternate" && det.first_side ? (unit % 2 === 0 ? det.first_side : det.first_side === "L" ? "R" : "L") : null;
   return (
-    <div ref={boxRef} className="space-y-4 rounded-3xl border-2 border-brand bg-surface p-5">
+    <div ref={boxRef} className="card space-y-4">
       <p className="text-[25px] font-semibold leading-[1.35]">
         ครั้งที่ {Math.min(unit + 1, det.units)} จาก {det.units}
         {side && ` · ${SIDE_TH[side]}`}

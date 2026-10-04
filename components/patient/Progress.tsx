@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { addDaysLocal } from "@/lib/client";
 
 const DAY_TH = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -10,43 +10,45 @@ function weekOf(today: string): string[] {
   return Array.from({ length: 7 }, (_, i) => addDaysLocal(today, i - dow));
 }
 
-/** A red strike across a thread: this one was stopped. */
-function Strike() {
-  return <span aria-hidden className="absolute inset-x-0.5 top-1/2 h-[5px] -translate-y-1/2 -rotate-[20deg] rounded-full bg-emergency ring-2 ring-surface" />;
+/** A rounded progress bar that grows in from the left. */
+export function GrowBar({ value, max, className = "" }: { value: number; max: number; className?: string }) {
+  const pct = max > 0 ? Math.min(1, value / max) : 0;
+  return (
+    <span aria-hidden className={`relative block h-3.5 overflow-hidden rounded-full bg-sage-tint ${className}`}>
+      {pct > 0 && <span className="grow-fill grow-in absolute inset-y-0 left-0 rounded-full" style={{ width: `${pct * 100}%` }} />}
+    </span>
+  );
 }
 
 /**
- * This week as a strip of cloth: a day with homework done is woven, today is ringed in gold,
- * the rest are bare warp. Information, not a score: no streaks, no badges.
- * `weaveToday` plays the one authored moment (today's band weaving in) on the outcome screen;
- * `stoppedToday` strikes today's thread in red when the run was stopped for safety.
+ * This week at a glance: a bar of days done against the prescribed count, then seven day tiles.
+ * Done = filled forest with a check, today = sun ring, stopped for safety = red cross (never counted),
+ * the rest stay pale. Information, not a score: no streaks, no badges.
  */
-export function WeekCloth({
+export function WeekStrip({
   doneDays,
   today,
   daysPerWeek,
-  weaveToday = false,
   stoppedToday = false,
 }: {
   doneDays: string[];
   today: string;
   daysPerWeek: number;
-  weaveToday?: boolean;
   stoppedToday?: boolean;
 }) {
   const days = weekOf(today);
   const done = new Set(doneDays);
-  // A day stopped for safety is struck, never counted or drawn as done.
   const isDoneDay = (d: string) => done.has(d) && !(stoppedToday && d === today);
   const doneThisWeek = days.filter(isDoneDay).length;
   return (
-    <section aria-labelledby="week-heading" className="space-y-3">
+    <section aria-labelledby="week-heading" className="card rise space-y-4" style={{ ["--i" as string]: 1 }}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id="week-heading" className="text-[25px] font-semibold leading-[1.35]">สัปดาห์นี้</h2>
+        <h2 id="week-heading" className="text-[22px] font-semibold leading-[1.35]">สัปดาห์นี้</h2>
         <p className="text-muted">
           ทำแล้ว <span className="font-semibold text-foreground">{doneThisWeek}</span> จาก {daysPerWeek} วัน
         </p>
       </div>
+      <GrowBar value={doneThisWeek} max={daysPerWeek} />
       <ol className="grid grid-cols-7 gap-1.5">
         {days.map((d, i) => {
           const isDone = isDoneDay(d);
@@ -54,21 +56,21 @@ export function WeekCloth({
           const stopped = isToday && stoppedToday;
           const state = stopped ? "หยุดกลางคัน" : isDone ? "ทำแล้ว" : d > today ? "ยังไม่ถึง" : isToday ? "ยังไม่ได้ทำ" : "ไม่ได้ทำ";
           return (
-            <li key={d} className="flex flex-col items-center gap-2.5">
+            <li key={d} className="flex flex-col items-center gap-2">
               <span className="sr-only">{`วัน${DAY_FULL_TH[i]}${isToday ? " (วันนี้)" : ""} ${state}`}</span>
               <span
                 aria-hidden
-                className={`relative h-16 w-full rounded-xl border-2 ${
-                  isDone ? "border-brand bg-brand-tint" : isToday ? "warp border-foreground" : "warp border-line"
+                className={`flex h-12 w-full items-center justify-center rounded-2xl ${
+                  stopped
+                    ? "border-2 border-emergency bg-emergency-tint text-emergency"
+                    : isDone
+                      ? "bg-brand text-white shadow-btn"
+                      : d > today
+                        ? "border-2 border-line bg-surface"
+                        : "bg-sage-tint"
                 } ${isToday ? "outline-[3px] outline-offset-2 outline-gold outline" : ""}`}
               >
-                {isDone && <span className={`weave absolute inset-0 rounded-[10px] ${isToday && weaveToday ? "weave-in" : ""}`} />}
-                {isDone && (
-                  <span className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-brand bg-surface">
-                    <Check className="h-4 w-4 text-brand" strokeWidth={3} />
-                  </span>
-                )}
-                {stopped && <Strike />}
+                {stopped ? <X className="h-6 w-6" strokeWidth={3} /> : isDone ? <Check className="h-6 w-6" strokeWidth={3} /> : null}
               </span>
               <span aria-hidden className={`text-lg leading-tight ${isToday ? "font-semibold text-foreground" : "text-muted"}`}>
                 {isToday ? "วันนี้" : DAY_TH[i]}
@@ -83,18 +85,18 @@ export function WeekCloth({
 
 export type Thread = "done" | "skipped" | undefined;
 
-/** The session as a warp of posture threads: done ones weave in, skipped ones stay bare, the current one is ringed in gold. */
-export function SessionWarp({ threads, current }: { threads: Thread[]; current: number | null }) {
+/** The session as segments, one per posture: done ones fill in, skipped ones stay dashed, the current one has a sun ring. */
+export function SessionBar({ threads, current }: { threads: Thread[]; current: number | null }) {
   return (
     <div className="flex gap-1.5" aria-hidden>
       {threads.map((t, i) => (
         <span
           key={i}
-          className={`relative h-3.5 flex-1 overflow-hidden rounded-full border-2 ${
-            t === "done" ? "border-gold bg-brand-deep" : t === "skipped" ? "border-dashed border-white/70 bg-transparent" : "border-brand-tint/60 bg-brand-deep"
-          } ${i === current ? "outline-2 outline-offset-1 outline-gold outline" : ""}`}
+          className={`relative h-3 flex-1 overflow-hidden rounded-full ${
+            t === "skipped" ? "border-2 border-dashed border-sage bg-transparent" : "bg-sage-tint"
+          } ${i === current ? "outline-2 outline-offset-2 outline-gold outline" : ""}`}
         >
-          {t === "done" && <span className="weave weave-in absolute inset-0" />}
+          {t === "done" && <span className="grow-fill grow-in absolute inset-0 rounded-full" />}
         </span>
       ))}
     </div>

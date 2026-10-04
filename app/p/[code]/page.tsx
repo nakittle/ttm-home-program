@@ -2,7 +2,7 @@
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
 import {
-  CalendarPlus, Check, ChevronDown, ChevronRight, CircleCheck, Clock, CloudUpload, House, ListChecks, LogOut, Play, RotateCcw, Settings, Trash2, Volume2, WifiOff, X,
+  CalendarPlus, Check, ChevronDown, Sprout, ChevronRight, CircleCheck, Clock, CloudUpload, House, ListChecks, LogOut, Play, RotateCcw, Settings, Trash2, Volume2, WifiOff, X,
 } from "lucide-react";
 import { CUES } from "@/lib/audio-keys";
 import { speak, unlockAudio } from "@/lib/audio";
@@ -29,7 +29,7 @@ import { ruleById, worst, type ClinicRuleSettings, type FiredFlag } from "@/lib/
 import { PostureRunner, type DuringButton } from "@/components/patient/PostureRunner";
 import { PainScale, YesNoQuestions } from "@/components/patient/Questions";
 import { FlagMessage, SpeakOnce } from "@/components/patient/Outcome";
-import { SessionWarp, WeekCloth, type Thread } from "@/components/patient/Weave";
+import { SessionBar, WeekStrip, type Thread } from "@/components/patient/Progress";
 
 interface Plan {
   code: string;
@@ -65,6 +65,39 @@ type Stage =
   | { s: "result"; runId: string; flags: FiredFlag[]; save: SaveState };
 
 const lastDoneKey = (code: string) => `hp:last:${code}`;
+const WEEKDAY_TH = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+const MONTH_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+const todayTh = () => {
+  const d = new Date();
+  return { weekday: WEEKDAY_TH[d.getDay()], date: `${d.getDate()} ${MONTH_TH[d.getMonth()]}` };
+};
+const greeting = () => {
+  const h = new Date().getHours();
+  return h < 11 ? "ตอนเช้า" : h < 16 ? "ตอนบ่าย" : h < 19 ? "ตอนเย็น" : "ตอนค่ำ";
+};
+
+/** Decorative corner: a soft sun and leaf sprigs beside the brand row only, never behind the greeting or body text. */
+function HeaderArt() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 200 120"
+      className="pointer-events-none absolute top-0 right-0 h-[120px] w-[200px] [mask-image:linear-gradient(90deg,transparent,#000_40%)]"
+    >
+      <circle cx="150" cy="34" r="46" fill="#f2c14e" opacity="0.2" />
+      <circle cx="150" cy="34" r="26" fill="#f2c14e" opacity="0.26" />
+      <g fill="none" stroke="#9cb59a" strokeLinecap="round" strokeWidth="2.5" opacity="0.6">
+        <path d="M112 120 C116 92 130 72 152 58" />
+        <path d="M188 120 C186 98 178 84 164 72" />
+      </g>
+      <g fill="#9cb59a" opacity="0.4">
+        <path d="M124 96 c-18 -4 -27 -16 -28 -27 c14 1 25 9 28 27z" />
+        <path d="M134 78 c3 -18 15 -27 27 -28 c-1 14 -9 25 -27 28z" />
+        <path d="M178 100 c-4 -16 3 -29 12 -34 c4 12 1 26 -12 34z" />
+      </g>
+    </svg>
+  );
+}
 const stopKey = (code: string) => `hp:stop:${code}`; // {day, rule}: today's run was stopped for safety
 const isStop = (f: FiredFlag | null | undefined) => f?.level === "call_1669" || f?.level === "stop_and_contact_clinic";
 
@@ -272,56 +305,62 @@ export default function PatientPage() {
   return (
     <main className="flex-1 text-[20px]">
       {inRun ? (
-        <header className="bg-brand text-white">
-          <div className="mx-auto max-w-xl space-y-3 px-5 py-3">
+        <header>
+          <div className="mx-auto max-w-xl space-y-3 px-5 pt-5 pb-1">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xl font-semibold leading-[1.4]">
+              <p className="text-xl font-semibold leading-[1.4] text-brand">
                 {runStep.label}
                 {"count" in runStep && runStep.count && <span className="whitespace-nowrap"> · {runStep.count}</span>}
               </p>
               {stage.s !== "result" && (
-                <button className="inline-flex min-h-14 items-center gap-2 rounded-2xl border-2 border-white/70 px-4 text-lg font-semibold focus-visible:outline-gold active:bg-brand-deep" onClick={leaveRun}>
+                <button className="btn-ghost shrink-0 px-5 text-lg" onClick={leaveRun}>
                   <LogOut aria-hidden className="h-6 w-6" strokeWidth={2} />
                   ออก
                 </button>
               )}
             </div>
-            {stage.s !== "result" && <SessionWarp threads={threads.length === total ? threads : plan.posture_ids.map(() => undefined)} current={runStep.current} />}
+            {stage.s !== "result" && <SessionBar threads={threads.length === total ? threads : plan.posture_ids.map(() => undefined)} current={runStep.current} />}
           </div>
-          <div className="selvedge" />
         </header>
       ) : (
-        <header className="bg-brand text-white">
-          <div className="mx-auto max-w-xl px-5 pt-5 pb-5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="min-w-0 text-lg text-white/90">{plan.clinic.name}</p>
-              <span className="shrink-0 rounded-full border-2 border-white/60 px-3 py-0.5 text-lg font-semibold" aria-label={`รหัสแผน ${plan.code}`}>
-                {plan.code}
+        <header className="relative">
+          <HeaderArt />
+          <div className="relative mx-auto flex max-w-xl items-center justify-between gap-3 px-5 pt-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sage-tint text-brand">
+                <Sprout className="h-6 w-6" strokeWidth={2} />
               </span>
+              <div className="min-w-0 leading-tight">
+                <p className="text-lg font-bold text-brand">การบ้านหลังนวด</p>
+                <p className="truncate text-base text-muted">{plan.clinic.name}</p>
+              </div>
             </div>
-            <p className="font-display text-[31px] font-bold leading-[1.3]">การบ้านหลังนวด</p>
+            <span className="shrink-0 rounded-full border border-line bg-surface px-3 py-1 text-base font-semibold text-brand shadow-soft" aria-label={`รหัสแผน ${plan.code}`}>
+              {plan.code}
+            </span>
           </div>
           {offline && (
-            <div className="mx-auto max-w-xl px-5 pb-4">
+            <div className="relative mx-auto max-w-xl px-5 pt-3">
               <p className="inline-flex items-center gap-2 rounded-full bg-gold px-4 py-1 text-lg font-semibold text-foreground">
                 <WifiOff aria-hidden className="h-5 w-5" strokeWidth={2} />
                 ออฟไลน์
               </p>
             </div>
           )}
-          <div className="selvedge" />
         </header>
       )}
 
-      <div className="mx-auto max-w-xl space-y-8 px-5 py-6">
+      <div className="relative mx-auto max-w-xl space-y-7 px-5 pt-5 pb-10">
         {stage.s === "consent" && (
           <section className="space-y-6">
-            <h1 className="font-display text-[31px] font-bold leading-[1.35]">ก่อนเริ่ม โปรดอ่าน</h1>
+            <h1 className="font-display text-[34px] font-bold leading-[1.3] text-brand">
+              ก่อนเริ่ม <span className="text-clay-ink">โปรดอ่าน</span>
+            </h1>
             <button className="btn-ghost w-full border-indigo/70 text-xl text-indigo active:bg-indigo-tint" onClick={() => speak(CONSENT_TH.join(" "))}>
               <Volume2 aria-hidden className="h-7 w-7" strokeWidth={2} />
               ฟังข้อความนี้
             </button>
-            <ul className="space-y-4">
+            <ul className="card space-y-4">
               {CONSENT_TH.map((t) => (
                 <li key={t} className="flex gap-3 leading-[1.7]">
                   <span aria-hidden className="mt-3 h-2.5 w-2.5 shrink-0 rounded-full bg-brand" />
@@ -353,11 +392,17 @@ export default function PatientPage() {
 
         {stage.s === "home" && (
           <>
-            <section className="space-y-4">
+            <section className="rise space-y-5">
               <div>
-                <h1 className="font-display text-[39px] font-bold leading-[1.25]">การบ้านวันนี้</h1>
-                <p className="text-xl text-muted">
-                  {total} ท่า · นัดครั้งถัดไป <span className="font-semibold text-foreground">{thaiDate(plan.next_visit_date)}</span>
+                <p className="text-lg font-semibold text-muted">
+                  วัน{todayTh().weekday} · <span className="text-clay-ink">{todayTh().date}</span>
+                </p>
+                <h1 className="mt-1 font-display text-[40px] font-bold leading-[1.2] text-brand">
+                  สวัสดี<span className="text-clay-ink">{greeting()}</span>
+                </h1>
+                <p className="mt-2 text-xl text-muted">
+                  การบ้านวันนี้ <span className="font-semibold text-foreground">{total} ท่า</span> · นัดครั้งถัดไป{" "}
+                  <span className="whitespace-nowrap font-semibold text-foreground">{thaiDate(plan.next_visit_date)}</span>
                 </p>
               </div>
               {stopToday ? (
@@ -368,7 +413,7 @@ export default function PatientPage() {
               ) : (
                 <>
                   {doneToday && (
-                    <p className="flex items-center gap-2 rounded-2xl bg-brand-tint px-4 py-3 text-xl font-semibold text-brand">
+                    <p className="flex items-center gap-2 rounded-full bg-brand-tint px-5 py-3 text-xl font-semibold text-brand">
                       <CircleCheck aria-hidden className="h-7 w-7" strokeWidth={2.25} />
                       วันนี้ทำแล้ว
                     </p>
@@ -381,23 +426,27 @@ export default function PatientPage() {
               )}
             </section>
 
-            <WeekCloth {...week} />
+            <WeekStrip {...week} />
 
-            <section aria-labelledby="postures-heading" className="space-y-3">
-              <h2 id="postures-heading" className="text-[25px] font-semibold leading-[1.35]">ท่าที่แพทย์แผนไทยสั่ง</h2>
-              <ol className="rounded-3xl border-2 border-line bg-surface">
+            <section aria-labelledby="postures-heading" className="rise space-y-3" style={{ ["--i" as string]: 2 }}>
+              <h2 id="postures-heading" className="px-1 text-[22px] font-semibold leading-[1.35]">ท่าที่แพทย์แผนไทยสั่ง</h2>
+              <ol className="rounded-3xl border border-line bg-surface shadow-soft">
                 {plan.posture_ids.map((id, i) => {
                   const p = getPosture(id);
                   const d = p.detector;
                   return (
-                    <li key={id} className={i > 0 ? "border-t-2 border-line" : ""}>
+                    <li key={id} className={i > 0 ? "border-t border-line" : ""}>
                       {i === 0 && (
-                        <div className="overflow-hidden rounded-t-[22px]">
-                          <img src={`/postures/${id}.webp`} alt="" className="aspect-[16/10] w-full object-cover object-[50%_42%]" />
+                        <div className="relative mx-4 mt-4 h-56 overflow-hidden rounded-[160px_160px_20px_20px] bg-sage-tint">
+                          <img src={`/postures/${id}.webp`} alt="" className="h-full w-full object-cover object-[50%_40%]" />
+                          <span className="absolute bottom-3 left-3 rounded-full border border-line bg-surface/90 px-3 py-0.5 text-base font-semibold text-brand">ท่าแรก</span>
+                          <span className="absolute right-3 bottom-3 rounded-full border border-line bg-surface/90 px-3 py-0.5 text-base font-semibold text-muted">
+                            {d.mode === "hold" ? `ค้าง ${d.hold_seconds} วินาที` : "นับเป็นครั้ง"}
+                          </span>
                         </div>
                       )}
                       <div className="flex items-center gap-3 p-4">
-                        <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-lg font-bold text-white">
+                        <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sage-tint text-lg font-bold text-brand">
                           {i + 1}
                         </span>
                         <div className="min-w-0">
@@ -415,8 +464,8 @@ export default function PatientPage() {
               </ol>
             </section>
 
-            <section className="space-y-3">
-              <dl className="space-y-3 rounded-3xl border-2 border-line bg-surface p-5">
+            <section className="rise space-y-3" style={{ ["--i" as string]: 3 }}>
+              <dl className="card space-y-3">
                 <div className="flex items-start gap-3">
                   <ListChecks aria-hidden className="mt-1 h-7 w-7 shrink-0 text-indigo" strokeWidth={2} />
                   <div>
@@ -446,7 +495,7 @@ export default function PatientPage() {
               )}
             </section>
 
-            <details className="group rounded-3xl border-2 border-line">
+            <details className="group rounded-3xl border border-line bg-surface/70">
               <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-5 text-lg font-semibold text-muted">
                 <Settings aria-hidden className="h-6 w-6" strokeWidth={2} />
                 ตั้งค่า
@@ -550,7 +599,7 @@ export default function PatientPage() {
             <p className="text-[24px] font-semibold leading-[1.6]">
               อาการเวียนหัว เกิดขึ้นทันทีและรุนแรง หรือมีหน้าเบี้ยว แขนขาอ่อนแรง พูดไม่ชัด ร่วมด้วยไหม
             </p>
-            <button className="flex min-h-20 w-full items-center justify-center gap-3 rounded-[20px] bg-emergency text-[25px] font-semibold text-white active:brightness-90" onClick={() => raise("RF01", stage.i)}>
+            <button className="flex min-h-20 w-full items-center justify-center gap-3 rounded-full bg-emergency shadow-btn text-[25px] font-semibold text-white active:brightness-90" onClick={() => raise("RF01", stage.i)}>
               <Check aria-hidden className="h-8 w-8" strokeWidth={2.5} />
               ใช่
             </button>
@@ -617,7 +666,7 @@ function Result({
 }: {
   stage: Extract<Stage, { s: "result" }>;
   clinicPhone: string | null;
-  week: ComponentProps<typeof WeekCloth>;
+  week: ComponentProps<typeof WeekStrip>;
   onHome: () => void;
 }) {
   const w = worst(stage.flags);
@@ -628,8 +677,8 @@ function Result({
       {/* Only the worst message is spoken, once per run (the save-state update does not remount this). */}
       <SpeakOnce text={w ? ruleById(w.rule_id).patient_message_th : CUES.session_done} />
       {!w && stage.save !== "notSent" && (
-        <div className="flex items-center gap-4 rounded-3xl border-2 border-brand bg-brand-tint p-5">
-          <CircleCheck aria-hidden className="h-12 w-12 shrink-0 text-brand" strokeWidth={2} />
+        <div className="card rise flex items-center gap-4 bg-brand-tint">
+          <span aria-hidden className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand text-white shadow-btn"><Check className="h-9 w-9" strokeWidth={3} /></span>
           {/* Same words as the spoken cue, set as a headline and its line of thanks. */}
           <p className="text-brand">
             <span className="block font-display text-[31px] font-bold leading-[1.3]">{CUES.session_done.split(" ")[0]}</span>
@@ -640,8 +689,8 @@ function Result({
       {shown.map((f) => (
         <FlagMessage key={f.rule_id} flag={f} clinicPhone={clinicPhone} />
       ))}
-      {/* Today's band weaves into the week; a stop strikes it. The 1669 screen keeps its one job. */}
-      {w?.level !== "call_1669" && <WeekCloth {...week} weaveToday={!stopped} stoppedToday={stopped} />}
+      {/* Today's tile fills in on the week; a stop crosses it. The 1669 screen keeps its one job. */}
+      {w?.level !== "call_1669" && <WeekStrip {...week} stoppedToday={stopped} />}
       <div aria-live="polite" className="space-y-3">
         {stage.save === "sending" && <p className="text-muted">กำลังส่งผล…</p>}
         {stage.save === "queued" && <p className="font-semibold text-indigo">ยังส่งผลไม่ได้ (ไม่มีอินเทอร์เน็ต) แอปจะส่งให้อัตโนมัติเมื่อเปิดลิงก์อีกครั้ง</p>}

@@ -1,22 +1,32 @@
 @import "tailwindcss";
 
-/* Thaitone-derived palette (contrast on --background): ink 16:1, muted 8.9:1, brand 8.7:1, indigo 8.4:1.
-   --gold is a fill only (ink on it 9.4:1), never a text colour. --emergency is for stopping and 1669 only. */
+/* "Tend"-style garden palette: sage wash, paper cards, forest ink, clay and sun accents.
+   Contrast on --background: foreground 12.9:1, brand 8.4:1, muted 7.2:1, white on brand 9.1:1.
+   --clay-ink is for display-size accent words only (4.9:1); --gold and --clay are fills, never text.
+   --emergency is for stopping and 1669 only. Token names are kept from the first pass so components did not churn. */
 :root {
-  --background: #faf7f0;
-  --surface: #fffdf8;
-  --foreground: #1f1b16;
-  --muted: #4a453d;
-  --line: #d9d0bf;
-  --brand: #145139;
-  --brand-deep: #0d3a28;
-  --brand-tint: #e3eee7;
-  --indigo: #16466e;
-  --indigo-tint: #e2eaf3;
-  --gold: #e8bb1f;
-  --gold-tint: #fbf0c8;
+  --background: #f4f6f0;
+  --surface: #fbfcf8;
+  --foreground: #1f2f25;
+  --muted: #3f5546;
+  --line: #d6e0d2;
+  --sage: #9cb59a;
+  --brand: #2f4f3a;
+  --brand-2: #456b52;
+  --brand-deep: #233d2c;
+  --brand-tint: #eaf0e6;
+  --sage-tint: #dfe8da;
+  --indigo: #35584a;
+  --indigo-tint: #e6eee8;
+  --gold: #f2c14e;
+  --gold-tint: #fbf1d3;
+  --clay: #d98e73;
+  --clay-ink: #a4563a;
+  --clay-tint: #f7e4dc;
   --emergency: #a51c22;
   --emergency-tint: #f9e4e2;
+  --shadow: 0 1px 0 rgb(255 255 255 / 0.8) inset, 0 18px 40px -22px rgb(47 79 58 / 0.35), 0 2px 6px -2px rgb(47 79 58 / 0.12);
+  --shadow-btn: 0 12px 22px -12px rgb(35 61 44 / 0.75);
 }
 
 @theme inline {
@@ -25,25 +35,39 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-sage: var(--sage);
   --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
   --color-brand-deep: var(--brand-deep);
   --color-brand-tint: var(--brand-tint);
+  --color-sage-tint: var(--sage-tint);
   --color-indigo: var(--indigo);
   --color-indigo-tint: var(--indigo-tint);
   --color-gold: var(--gold);
   --color-gold-tint: var(--gold-tint);
+  --color-clay: var(--clay);
+  --color-clay-ink: var(--clay-ink);
+  --color-clay-tint: var(--clay-tint);
   --color-emergency: var(--emergency);
   --color-emergency-tint: var(--emergency-tint);
   --font-sans: var(--font-looped), "Noto Sans Thai Looped", sans-serif;
   --font-display: var(--font-plex-thai), var(--font-looped), sans-serif;
+  --shadow-soft: var(--shadow);
+  --shadow-btn: var(--shadow-btn);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  /* Two soft glows: sun from the top right, sage from the left. Fixed so long pages keep the wash. */
+  background-image:
+    radial-gradient(900px 520px at 92% -10%, rgb(242 193 78 / 0.18), transparent 60%),
+    radial-gradient(900px 640px at -12% 18%, rgb(156 181 154 / 0.22), transparent 60%);
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-looped), "Noto Sans Thai Looped", sans-serif;
   font-size: 18px;
   line-height: 1.7;
+  font-variant-numeric: tabular-nums;
 }
 
 ::selection {
@@ -54,7 +78,7 @@ body {
 /* Base layer, so a utility (focus:outline-none on a heading that only receives programmatic focus) can override it. */
 @layer base {
   :focus-visible {
-    outline: 3px solid var(--indigo);
+    outline: 3px solid var(--clay-ink);
     outline-offset: 3px;
   }
 }
@@ -63,56 +87,54 @@ body {
    Unlayered, these rules beat every utility and selected answers / red buttons looked unchanged. */
 @layer components {
   .btn {
-    @apply inline-flex min-h-14 items-center justify-center gap-3 rounded-[20px] px-6 py-3 font-semibold text-white bg-brand active:bg-brand-deep disabled:opacity-40;
+    @apply inline-flex min-h-14 items-center justify-center gap-3 rounded-full px-7 py-3 font-semibold text-white bg-brand shadow-btn transition active:translate-y-px active:scale-[0.99] active:bg-brand-deep disabled:opacity-40 disabled:shadow-none;
   }
   .btn-ghost {
-    @apply inline-flex min-h-14 items-center justify-center gap-3 rounded-[20px] px-6 py-3 font-semibold text-brand border-2 border-brand bg-surface active:bg-brand-tint disabled:opacity-40;
+    @apply inline-flex min-h-14 items-center justify-center gap-3 rounded-full px-6 py-3 font-semibold text-brand border-2 border-sage bg-surface transition active:bg-brand-tint disabled:opacity-40;
   }
   .card {
-    @apply rounded-3xl bg-surface border-2 border-line p-5;
+    @apply rounded-3xl bg-surface border border-line p-5 shadow-soft;
   }
   .input {
     @apply w-full rounded-2xl border-2 border-line bg-surface px-4 py-3 text-lg;
   }
-
-  /* ผ้าขาวม้า check: indigo warp and weft crossing on green, with a thin gold and ivory thread.
-     Used only as data (a day or a posture done) and as the header selvedge, never behind text. */
-  .weave {
-    background-color: var(--brand);
-    background-image:
-      repeating-linear-gradient(90deg, transparent 0 7px, rgb(250 247 240 / 0.7) 7px 8px, transparent 8px 9px, rgb(232 187 31 / 0.95) 9px 11px, transparent 11px 14px),
-      repeating-linear-gradient(0deg, transparent 0 7px, rgb(250 247 240 / 0.55) 7px 8px, transparent 8px 9px, rgb(232 187 31 / 0.75) 9px 11px, transparent 11px 14px),
-      repeating-linear-gradient(90deg, rgb(22 70 110 / 0.95) 0 6px, transparent 6px 14px),
-      repeating-linear-gradient(0deg, rgb(22 70 110 / 0.7) 0 6px, transparent 6px 14px);
+  /* Progress fill: sage to forest, as in a growing stem. */
+  .grow-fill {
+    background-image: linear-gradient(90deg, var(--sage), var(--brand-2));
   }
-  /* The one authored moment: a thread weaves in from the left when its posture or day is done. */
-  .weave-in {
-    animation: weave-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Cards and sections rise in once, staggered by --i. Content is visible by default under reduced motion. */
+  .rise {
+    animation: rise 600ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
   }
-  /* A warp not yet woven: pale vertical threads only. */
-  .warp {
-    background-color: var(--surface);
-    background-image: repeating-linear-gradient(90deg, var(--line) 0 2px, transparent 2px 8px);
-  }
-  .selvedge {
-    height: 10px;
-    background-color: var(--brand);
-    background-image:
-      repeating-linear-gradient(90deg, var(--gold) 0 6px, var(--brand) 6px 12px, var(--indigo) 12px 22px, var(--surface) 22px 24px, var(--indigo) 24px 34px, var(--brand) 34px 40px);
+  .grow-in {
+    transform-origin: 0 50%;
+    animation: grow-in 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
 
-@keyframes weave-in {
+@keyframes rise {
   from {
-    clip-path: inset(0 100% 0 0);
+    opacity: 0;
+    transform: translateY(16px);
   }
   to {
-    clip-path: inset(0 0 0 0);
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes grow-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
   }
 }
 
 html {
-  scrollbar-color: var(--line) var(--background);
+  scrollbar-color: var(--sage) var(--background);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -120,6 +142,7 @@ html {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
   }
 }

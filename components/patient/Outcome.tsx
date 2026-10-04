@@ -34,13 +34,13 @@ export function FlagMessage({ flag, clinicPhone }: { flag: FiredFlag; clinicPhon
   const emergency = flag.level === "call_1669";
   const Mark = MARK[flag.level];
   return (
-    <div className={`space-y-4 rounded-3xl border-2 p-5 ${FRAME[flag.level]}`}>
+    <div className={`rise space-y-4 rounded-3xl border-2 p-5 shadow-soft ${FRAME[flag.level]}`}>
       <p className={`flex gap-3 leading-[1.6] ${emergency ? "text-[25px] font-semibold" : "text-[22px]"}`}>
         <Mark aria-hidden className={`mt-1.5 h-8 w-8 shrink-0 ${MARK_COLOR[flag.level]}`} strokeWidth={2.25} />
         <span>{rule.patient_message_th}</span>
       </p>
       {emergency && (
-        <a href="tel:1669" className="flex min-h-[76px] w-full items-center justify-center gap-3 rounded-[20px] bg-emergency font-display text-[31px] font-bold text-white active:brightness-90">
+        <a href="tel:1669" className="flex min-h-[76px] w-full items-center justify-center gap-3 rounded-full bg-emergency shadow-btn font-display text-[31px] font-bold text-white active:brightness-90">
           <Phone aria-hidden className="h-9 w-9" strokeWidth={2.25} />
           โทร 1669
         </a>

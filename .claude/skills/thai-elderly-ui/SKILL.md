@@ -23,24 +23,25 @@ Patients are mostly older Thai adults on phones; clinic staff and DTAM use deskt
 - Line-height **1.7** body, **1.35** headings [I]. Thai stacks vowels/tone marks above and below — never put `overflow:hidden` or a fixed height on a text box; check that ปู่ ญี่ ฎ ฐ are not clipped.
 - Thai has no spaces between words: do not insert spaces mid-phrase; keep line breaks natural.
 
-## Colour (Thaitone-derived, contrast computed with the WCAG formula)
+## Colour (updated 5 Oct 2026: "Tend" sage style chosen by the user; see DESIGN.md)
 
 | Role | Hex | Contrast |
 |---|---|---|
-| Background | `#FAF7F0` | — |
-| Text | `#1F1B16` | 16:1 |
-| Muted text | `#4A453D` | 8.9:1 |
-| Primary (เขียวใบแค) | `#145139` | 8.7:1; white on it 9.3:1 |
-| Secondary (คราม) | `#16466E` | 8.4:1 |
-| Accent fill (รงทอง) | `#E8BB1F` | dark text on it 9.4:1 (never as text colour) |
+| Background | `#F4F6F0` (+ soft sun/sage radial glows) | — |
+| Card / paper | `#FBFCF8` with soft layered shadow | — |
+| Text | `#1F2F25` | 12.9:1 |
+| Muted text | `#3F5546` | 7.2:1 |
+| Primary (forest) | `#2F4F3A` | 8.4:1; white on it 9.1:1 |
+| Accent word (clay) | `#A4563A` | 4.9:1, display sizes only |
+| Sun fill / today ring | `#F2C14E` | ink on it 8.4:1 (never as text colour) |
 | Emergency 1669 | `#A51C22` | white on it 7.5:1 |
 
-- Aim for AAA (7:1) on patient screens. `#C9242B`, `#D88529`, `#45AB87` fail as text colours.
+- Aim for AAA (7:1) on patient screens for body text.
 - Define colours as tokens in `app/globals.css` (`@theme inline`); keep custom classes in `@layer components` so utilities override them (an unlayered class once hid selected-answer colours).
 
 ## Size, spacing, shape
 
-- Primary buttons **64px** tall, full width on phones. Every other target **≥ 56px** with **≥ 12px** gap [I] (WCAG AAA is 44px; Android 48dp).
+- Primary buttons **64px** tall, pill-shaped, full width on phones. Every other target **≥ 56px** with **≥ 12px** gap [I] (WCAG AAA is 44px; Android 48dp).
 - 1669 button **≥ 72px**, fixed, never animated or hidden in a menu.
 - 8px spacing grid, 24px screen padding, 20–24px corner radius. Outline icons, 2px stroke, 28–32px, always with a Thai text label.
 

@@ -69,8 +69,8 @@ export function YesNoQuestions({
       <div className="grid grid-cols-2 gap-3" role="group" aria-label="คำตอบ">
         <button
           aria-pressed={answer === true}
-          className={`flex min-h-20 items-center justify-center gap-2 rounded-[20px] border-2 text-[25px] font-semibold ${
-            answer === true ? "border-emergency bg-emergency text-white" : "border-emergency/60 bg-surface text-emergency"
+          className={`flex min-h-20 items-center justify-center gap-2 rounded-3xl border-2 text-[25px] font-semibold transition ${
+            answer === true ? "border-emergency bg-emergency text-white shadow-btn" : "border-emergency/50 bg-surface text-emergency shadow-soft"
           }`}
           onClick={() => set(true)}
         >
@@ -79,8 +79,8 @@ export function YesNoQuestions({
         </button>
         <button
           aria-pressed={answer === false}
-          className={`flex min-h-20 items-center justify-center gap-2 rounded-[20px] border-2 text-[25px] font-semibold ${
-            answer === false ? "border-brand bg-brand text-white" : "border-brand/60 bg-surface text-brand"
+          className={`flex min-h-20 items-center justify-center gap-2 rounded-3xl border-2 text-[25px] font-semibold transition ${
+            answer === false ? "border-brand bg-brand text-white shadow-btn" : "border-brand/50 bg-surface text-brand shadow-soft"
           }`}
           onClick={() => set(false)}
         >
@@ -114,8 +114,8 @@ export function PainScale({ title, onDone, onBack }: { title: string; onDone: (v
             key={n}
             aria-pressed={v === n}
             aria-label={PAIN_WORD[n] ? `${n} ${PAIN_WORD[n]}` : String(n)}
-            className={`flex min-h-20 items-center justify-center rounded-[20px] border-2 font-display text-[34px] font-bold leading-none ${
-              v === n ? "border-foreground bg-foreground text-white" : `border-transparent text-foreground ${tone(n)}`
+            className={`flex min-h-20 items-center justify-center rounded-3xl border-2 font-display transition text-[34px] font-bold leading-none ${
+              v === n ? "border-brand bg-brand text-white shadow-btn" : `border-transparent text-foreground ${tone(n)}`
             }`}
             onClick={() => setV(n)}
           >

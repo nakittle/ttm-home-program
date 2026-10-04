@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "แพทย์แผนไทยสั่งท่าฤๅษีดัดตนของกรมการแพทย์แผนไทยฯ ให้ผู้ป่วยทำที่บ้าน แล้วผลกลับถึงคลินิก",
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#145139" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#f4f6f0" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

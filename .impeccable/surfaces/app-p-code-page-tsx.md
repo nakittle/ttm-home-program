@@ -13,15 +13,17 @@ Components in scope: `app/p/[code]/page.tsx`, `components/patient/{Questions,Pos
 
 ## Direction contract
 
-THESIS: Each day's homework is one thread; a week of practice weaves a ผ้าขาวม้า. The surface refuses the category default of a white health app with progress rings and badges, and refuses gold Thai ornament.
+Replaced 5 Oct 2026 at the user's request: the first world ("ผ้าขาวม้า" weave, seed 7f3745a0) looked dated to them. The user pinned the reference "Tend — A Habit Garden" (miaai-lab Claude-Opus-5.5-100-HTML-Files #046) and asked to drop the weave entirely.
 
-OWN-WORLD: Ivory ground #FAF7F0, ink #1F1B16. Shell header is a solid เขียวใบแค #145139 field with a woven selvedge strip (check of green, คราม #16466E, รงทอง #E8BB1F, ivory) along its lower edge. Panels are ivory-white with one 2px border system, 20–24px radius, no shadows. Check pattern appears only as data (done days, session progress) or the selvedge, never behind text. IBM Plex Sans Thai Looped body 20px/1.7, IBM Plex Sans Thai display 31–39px/1.35. Lucide outline icons, 2px stroke, always labelled. Emergency red #A51C22 only for stopping and 1669.
+THESIS: A calm daily-habit app, not a hospital form: soft sage wash, floating paper cards, a warm greeting, and one big pill to start.
 
-STORY: The patient sees whose plan this is, what today asks, and one big way to start; sees the week woven so far without being scored; moves one question or one posture at a time; can stop at any moment from a bar that never scrolls away; ends seeing today's thread added to the cloth, or a calm clear instruction to rest, call the clinic, or call 1669.
+OWN-WORLD: Sage background #f4f6f0 with sun and sage radial glows; paper cards #fbfcf8 with a layered soft shadow and 24px corners; forest #2f4f3a for ink accents and the primary pill (with a tinted drop shadow); clay #a4563a only for one accent word in display headings; sun #f2c14e for the today/current ring; emergency red #a51c22 only for stopping and 1669. Thai type is unchanged: Plex Sans Thai Looped body at 20px, Plex Sans Thai display at 28px and up.
 
-FIRST VIEWPORT (375×812): green header band (clinic name, "การบ้านหลังนวด", plan code) ending in the selvedge strip → "การบ้านวันนี้" 31px + "4 ท่า" with the next-visit date → 64px+ solid green "เริ่มทำการบ้านวันนี้" with play icon, full width → "สัปดาห์นี้" cloth: 7 day columns จ–อา, done days densely woven, today ringed in gold, others pale warp, with "ทำแล้ว 2 จาก 5 วัน" → first posture row expanded with its DTAM sheet crop; the rest one line each, continuing below the fold.
+STORY: Greeting, then today's task count and next visit, then one start pill. The week is shown as a progress bar plus seven day tiles. Posture flow runs one thing per screen, with a fixed stop bar.
 
-FORM: ผ้าขาวม้า weave (assigned, candidate 4 of 7 on the grounded list); seed key 7f3745a0. Raises: one state-mark vocabulary (filled done / hollow not yet / red strike stopped / gold ring today); current item expands, others recede; solid colour fields for shell and primary; strong type-scale contrast; one 2px border system; every posture numbered "ท่าที่ n จาก m". Signature interaction: session progress is a warp of n posture segments that weave in as each posture completes, and the outcome adds today's band to the week cloth.
+FIRST VIEWPORT (375×812): brand row (sprout tile, name, clinic, plan-code pill) with a sun-and-leaf corner art; date line; greeting h1 "สวัสดี" + clay time-of-day word; meta line; 76px forest start pill; the week card begins.
+
+FORM: user-pinned reference (Tend), code-led. Signature: arch-shaped posture picture, and bars that grow from sage to forest.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
