@@ -2,8 +2,9 @@
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
 import {
-  CalendarPlus, Check, ChevronDown, Sprout, ChevronRight, CircleCheck, Clock, CloudUpload, House, ListChecks, LogOut, Play, RotateCcw, Settings, Trash2, Volume2, WifiOff, X,
+  CalendarPlus, Check, ChevronDown, ChevronRight, CircleCheck, Clock, CloudUpload, House, ListChecks, LogOut, Play, RotateCcw, Settings, Trash2, Volume2, WifiOff, X,
 } from "lucide-react";
+import { LogoMark } from "@/components/Logo";
 import { CUES } from "@/lib/audio-keys";
 import { speak, unlockAudio } from "@/lib/audio";
 import { api, thaiDate, todayLocal } from "@/lib/client";
@@ -327,9 +328,7 @@ export default function PatientPage() {
           <HeaderArt />
           <div className="relative mx-auto flex max-w-xl items-center justify-between gap-3 px-5 pt-5">
             <div className="flex min-w-0 items-center gap-3">
-              <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sage-tint text-brand">
-                <Sprout className="h-6 w-6" strokeWidth={2} />
-              </span>
+              <LogoMark className="h-11 w-11" />
               <div className="min-w-0 leading-tight">
                 <p className="text-lg font-bold text-brand">การบ้านหลังนวด</p>
                 <p className="truncate text-base text-muted">{plan.clinic.name}</p>

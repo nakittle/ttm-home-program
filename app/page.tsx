@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Building2, ChartColumn, ClipboardList, Home as HomeIcon, QrCode, ShieldCheck, Sprout, Stethoscope } from "lucide-react";
+import { ArrowRight, Building2, ChartColumn, ClipboardList, Home as HomeIcon, QrCode, ShieldCheck, Stethoscope } from "lucide-react";
+import { Logo } from "@/components/Logo";
+import { PhoneDemo } from "@/components/landing/PhoneDemo";
 
 const LOOP = [
   { icon: Stethoscope, title: "แพทย์แผนไทยสั่งท่า", text: "เลือกท่าฤๅษีดัดตนจากแผ่นของกรมฯ ให้ผู้ป่วยรายคน ออกใบนัดพร้อม QR" },
@@ -10,15 +12,12 @@ const LOOP = [
 
 export default function Home() {
   return (
-    <main className="flex-1">
+    <main className="flex-1 overflow-x-clip">
       <header className="mx-auto flex max-w-6xl items-center gap-3 px-5 pt-6">
-        <span aria-hidden className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sage-tint text-brand">
-          <Sprout className="h-6 w-6" strokeWidth={2} />
-        </span>
-        <span className="text-lg font-bold text-brand">การบ้านหลังนวด</span>
+        <Logo sub="ท่าฤๅษีดัดตน ทำต่อที่บ้าน" />
       </header>
 
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 pt-10 pb-14 md:grid-cols-[1fr_auto]">
+      <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 pt-6 pb-14 md:grid-cols-[1fr_auto]">
         <div className="rise space-y-6">
           <h1 className="font-display text-[38px] font-bold leading-[1.2] text-brand sm:text-[56px]">
             นวดเสร็จแล้ว
@@ -48,20 +47,10 @@ export default function Home() {
           </p>
         </div>
 
-        {/* The real patient home screen (synthetic demo clinic), framed as a phone. */}
-        <figure className="rise relative mx-auto w-[260px] sm:w-[300px]" style={{ ["--i" as string]: 2 }}>
-          <span aria-hidden className="absolute -inset-10 -z-10 rounded-full bg-[radial-gradient(circle,rgb(242_193_78/0.28),transparent_65%)]" />
-          <div className="rounded-[44px] border border-line bg-foreground p-2.5 shadow-[0_40px_80px_-40px_rgb(35_61_44/0.6)]">
-            <img
-              src="/landing/patient-home.webp"
-              alt="หน้าวันนี้ของผู้ป่วย: คำทักทาย ปุ่มเริ่มทำการบ้าน แถบสัปดาห์นี้ และท่าที่แพทย์สั่ง"
-              width={600}
-              height={1200}
-              className="block w-full rounded-[36px]"
-            />
-          </div>
-          <figcaption className="mt-3 text-center text-base text-muted">หน้าจอผู้ป่วยจริง (คลินิกข้อมูลจำลอง)</figcaption>
-        </figure>
+        {/* The patient flow as a looping motion graphic (synthetic demo clinic). */}
+        <div className="rise" style={{ ["--i" as string]: 2 }}>
+          <PhoneDemo />
+        </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-14">

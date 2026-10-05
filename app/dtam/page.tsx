@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { Building2, ChartColumn, Database, EyeOff, LogIn, RotateCcw, ShieldCheck, Sprout } from "lucide-react";
+import { Building2, ChartColumn, Database, EyeOff, LogIn, RotateCcw, ShieldCheck } from "lucide-react";
+import { LogoMark } from "@/components/Logo";
 import type { DtamSummary } from "@/lib/aggregate";
 import { api, pct, thaiDate } from "@/lib/client";
 import { getGroup } from "@/lib/content";
@@ -12,9 +13,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex-1">
       <header className="mx-auto flex max-w-6xl items-center gap-3 px-5 pt-6 pb-2">
-        <span aria-hidden className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sage-tint text-brand">
-          <Sprout className="h-6 w-6" strokeWidth={2} />
-        </span>
+        <LogoMark className="h-11 w-11" />
         <span className="leading-tight">
           <span className="block text-lg font-bold text-brand">การบ้านหลังนวด · ภาพรวมกรมฯ</span>
           <span className="block text-base text-muted">กรมการแพทย์แผนไทยและการแพทย์ทางเลือก</span>

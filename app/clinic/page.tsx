@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { BellRing, CalendarCheck, Camera, Check, ChevronDown, CircleCheck, ClipboardList, LogIn, NotebookPen, Printer, Square, Sprout } from "lucide-react";
+import { BellRing, CalendarCheck, Camera, Check, ChevronDown, CircleCheck, ClipboardList, LogIn, NotebookPen, Printer, Square } from "lucide-react";
+import { LogoMark } from "@/components/Logo";
 import type { DashboardItem } from "@/lib/aggregate";
 import { api, pct, thaiDate, type ApiResult } from "@/lib/client";
 import { getGroup, getPosture } from "@/lib/content";
@@ -35,9 +36,7 @@ function Login({ onDone }: { onDone: () => void }) {
         }}
       >
         <div className="flex items-center gap-3">
-          <span aria-hidden className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sage-tint text-brand">
-            <Sprout className="h-7 w-7" strokeWidth={2} />
-          </span>
+          <LogoMark className="h-12 w-12" />
           <div className="leading-tight">
             <p className="text-base text-muted">การบ้านหลังนวด</p>
             <h1 className="font-display text-[28px] font-bold text-brand">เข้าสู่ระบบคลินิก</h1>

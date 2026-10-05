@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { ClipboardList, LogOut, Plus, ShieldAlert, Sprout } from "lucide-react";
+import { ClipboardList, LogOut, Plus, ShieldAlert } from "lucide-react";
+import { LogoMark } from "@/components/Logo";
 
 const NAV = [
   { href: "/clinic", label: "แผนผู้ป่วย", icon: ClipboardList },
@@ -17,9 +18,7 @@ export function ClinicShell({ clinicName, onLogout, children }: { clinicName?: s
     <div className="flex-1">
       <header className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-3 px-5 pt-6 pb-2">
         <Link href="/clinic" className="flex min-w-0 items-center gap-3">
-          <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sage-tint text-brand">
-            <Sprout className="h-6 w-6" strokeWidth={2} />
-          </span>
+          <LogoMark className="h-11 w-11" />
           <span className="min-w-0 leading-tight">
             <span className="block text-lg font-bold text-brand">การบ้านหลังนวด · คลินิก</span>
             {clinicName && <span className="block truncate text-base text-muted">{clinicName}</span>}

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
-import { ArrowLeft, CalendarCheck, Clock, Phone, Printer, ScanLine, Siren, Sprout } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Clock, Phone, Printer, ScanLine, Siren } from "lucide-react";
+import { LogoMark } from "@/components/Logo";
 import { api, thaiDate } from "@/lib/client";
 import { getPosture, groupsFile } from "@/lib/content";
 
@@ -61,9 +62,7 @@ export default function SlipPage() {
         </svg>
 
         <header className="relative flex items-center gap-[2.5mm]">
-          <span aria-hidden className="flex h-[9mm] w-[9mm] shrink-0 items-center justify-center rounded-[2.5mm] bg-sage-tint text-brand">
-            <Sprout className="h-[5mm] w-[5mm]" strokeWidth={2} />
-          </span>
+          <LogoMark className="h-[9mm] w-[9mm]" />
           <div className="min-w-0 leading-tight">
             <p className="text-[15px] font-bold text-brand">การบ้านหลังนวด</p>
             <p className="truncate text-[11px] text-muted">{plan?.clinic.name ?? " "}</p>
