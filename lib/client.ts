@@ -24,6 +24,24 @@ export async function api<T = unknown>(path: string, init: { method?: string; bo
   }
 }
 
+const LOGGED_OUT = "hp_clinic_logged_out";
+
+/** Enter the open demo clinic (no PIN) unless this tab chose to log out. True when a clinic session now exists. */
+export async function enterOpenClinic(force = false): Promise<boolean> {
+  try {
+    if (!force && sessionStorage.getItem(LOGGED_OUT)) return false;
+    sessionStorage.removeItem(LOGGED_OUT);
+  } catch {}
+  return (await api("/api/clinic/demo", { body: {} })).ok;
+}
+
+/** Remember for this tab that the user logged out, so the PIN form shows instead of the open clinic. */
+export function markClinicLoggedOut() {
+  try {
+    sessionStorage.setItem(LOGGED_OUT, "1");
+  } catch {}
+}
+
 /** Reject with Error("timeout") if `p` has not settled after `ms`; the timer is always cleared. */
 export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;

@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { BellRing, CalendarCheck, Camera, Check, ChevronDown, CircleCheck, ClipboardList, LogIn, NotebookPen, Printer, Square } from "lucide-react";
+import { BellRing, CalendarCheck, Camera, Check, ChevronDown, CircleCheck, ClipboardList, DoorOpen, LogIn, NotebookPen, Printer, Square } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 import type { DashboardItem } from "@/lib/aggregate";
-import { api, pct, thaiDate, type ApiResult } from "@/lib/client";
+import { api, enterOpenClinic, markClinicLoggedOut, pct, thaiDate, type ApiResult } from "@/lib/client";
 import { getGroup, getPosture } from "@/lib/content";
 import { ruleById } from "@/lib/redflags";
 import { LevelBadge } from "@/components/LevelBadge";
@@ -42,6 +42,22 @@ function Login({ onDone }: { onDone: () => void }) {
             <h1 className="font-display text-[28px] font-bold text-brand">เข้าสู่ระบบคลินิก</h1>
           </div>
         </div>
+        <button
+          type="button"
+          className="btn w-full"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const ok = await enterOpenClinic(true);
+            setBusy(false);
+            if (ok) onDone();
+            else setErr("เข้าคลินิกทดลองไม่สำเร็จ ลองอีกครั้ง");
+          }}
+        >
+          <DoorOpen aria-hidden className="h-5 w-5" strokeWidth={2} />
+          เข้าคลินิกทดลอง ไม่ต้องใส่รหัส
+        </button>
+        <p className="flex items-center gap-3 text-base text-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">หรือคลินิกที่มี PIN</p>
         <label className="block space-y-1 font-semibold">
           รหัสคลินิก
           <input className="input font-normal" value={code} onChange={(e) => setCode(e.target.value)} autoCapitalize="characters" required />
@@ -51,7 +67,7 @@ function Login({ onDone }: { onDone: () => void }) {
           <input className="input font-normal" value={pin} onChange={(e) => setPin(e.target.value)} inputMode="numeric" pattern="\d{6}" type="password" required />
         </label>
         {err && <p className="font-semibold text-emergency">{err}</p>}
-        <button className="btn w-full" disabled={busy}>
+        <button className="btn-ghost w-full" disabled={busy}>
           <LogIn aria-hidden className="h-5 w-5" strokeWidth={2} />
           เข้าสู่ระบบ
         </button>
@@ -234,7 +250,9 @@ export default function ClinicPage() {
   const [offline, setOffline] = useState(false);
 
   const load = useCallback(async () => {
-    const r = await api<Dashboard>("/api/clinic/dashboard");
+    let r = await api<Dashboard>("/api/clinic/dashboard");
+    // No session: judges and visitors go straight into the open demo clinic (no PIN).
+    if (r.status === 401 && (await enterOpenClinic())) r = await api<Dashboard>("/api/clinic/dashboard");
     if (r.status === 401) return setNeedLogin(true);
     if (!r.ok) return setOffline(true);
     setNeedLogin(false);
@@ -263,6 +281,7 @@ export default function ClinicPage() {
     <ClinicShell
       clinicName={data.clinic.name}
       onLogout={async () => {
+        markClinicLoggedOut();
         await api("/api/clinic/logout", { body: {} });
         setNeedLogin(true);
       }}

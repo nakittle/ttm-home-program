@@ -21,10 +21,9 @@ export function verifyPin(pin: string, stored: string): boolean {
   return timingSafeEqual(want, got);
 }
 
-export type SessionClaims = { role: "clinic"; clinicId: string } | { role: "dtam" };
+export type SessionClaims = { role: "clinic"; clinicId: string };
 
 export const CLINIC_COOKIE = "hp_clinic";
-export const DTAM_COOKIE = "hp_dtam";
 export const SESSION_HOURS = 12;
 
 function key(): Uint8Array {
@@ -46,7 +45,6 @@ export async function readSession(token: string | undefined): Promise<SessionCla
   try {
     const { payload } = await jwtVerify(token, key(), { algorithms: ["HS256"] });
     if (payload.role === "clinic" && typeof payload.clinicId === "string") return { role: "clinic", clinicId: payload.clinicId };
-    if (payload.role === "dtam") return { role: "dtam" };
     return null;
   } catch {
     return null;

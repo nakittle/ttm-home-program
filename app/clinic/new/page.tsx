@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Ban, Check, CircleAlert, ExternalLink, QrCode } from "lucide-react";
-import { addDaysLocal, api, todayLocal } from "@/lib/client";
+import { addDaysLocal, api, todayLocal, enterOpenClinic } from "@/lib/client";
 import { activeGroups, getPosture, groupsFile, posturesForGroups } from "@/lib/content";
 import { ClinicShell } from "@/components/clinic/Shell";
 
@@ -176,9 +176,12 @@ export default function NewPlanPage() {
             onClick={async () => {
               setBusy(true);
               setErr(null);
-              const r = await api<{ code: string; secret: string }>("/api/plans", {
-                body: { group_ids: groups, posture_ids: postureIds, days_per_week: days, remind_time: time, start_date: start, next_visit_date: visit },
-              });
+              const send = () =>
+                api<{ code: string; secret: string }>("/api/plans", {
+                  body: { group_ids: groups, posture_ids: postureIds, days_per_week: days, remind_time: time, start_date: start, next_visit_date: visit },
+                });
+              let r = await send();
+              if (r.status === 401 && (await enterOpenClinic())) r = await send();
               setBusy(false);
               if (r.ok) router.push(`/clinic/slip/${r.data.code}#${r.data.secret}`);
               else setErr(r.status === 401 ? "โปรดเข้าสู่ระบบใหม่" : (r.message_th ?? "สร้างแผนไม่สำเร็จ"));

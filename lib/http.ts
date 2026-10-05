@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { CLINIC_COOKIE, DTAM_COOKIE, cookieOptions, readSession } from "@/lib/auth";
+import { CLINIC_COOKIE, cookieOptions, readSession } from "@/lib/auth";
 
 export const json = (data: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
@@ -50,10 +50,6 @@ export async function clinicIdFrom(req: Request): Promise<string | null> {
   return s?.role === "clinic" ? s.clinicId : null;
 }
 
-export async function isDtam(req: Request): Promise<boolean> {
-  const s = await readSession(readCookie(req, DTAM_COOKIE));
-  return s?.role === "dtam";
-}
 
 // --- rate limiting (per server instance; good enough for a prototype) ---
 const hits = new Map<string, number[]>();

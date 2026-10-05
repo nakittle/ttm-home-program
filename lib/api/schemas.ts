@@ -9,7 +9,6 @@ const ruleId = z.enum(redflags.rules.map((r) => r.id) as [string, ...string[]]);
 const adjustable = redflags.rules.filter((r) => r.clinic_adjustable).map((r) => r.id);
 
 export const LoginBody = z.object({ code: z.string().min(2).max(20), pin: z.string().regex(/^\d{6}$/) });
-export const DtamLoginBody = z.object({ password: z.string().min(1).max(100) });
 
 export const CreatePlanBody = z
   .object({

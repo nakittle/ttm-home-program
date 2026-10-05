@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BookOpen, Info, Lock, Save } from "lucide-react";
-import { api } from "@/lib/client";
+import { api, enterOpenClinic } from "@/lib/client";
 import { redflags } from "@/lib/content";
 import type { ClinicRuleSettings } from "@/lib/redflags";
 import { LevelBadge } from "@/components/LevelBadge";
@@ -27,10 +27,13 @@ export default function SettingsPage() {
   const isValid = (t: string) => /^\d+$/.test(t) && Number(t) >= 1 && Number(t) <= 10;
 
   useEffect(() => {
-    api<{ clinic: { settings: ClinicRuleSettings } }>("/api/clinic/dashboard").then((r) => {
+    (async () => {
+      const get = () => api<{ clinic: { settings: ClinicRuleSettings } }>("/api/clinic/dashboard");
+      let r = await get();
+      if (r.status === 401 && (await enterOpenClinic())) r = await get();
       if (r.ok) setSettings(r.data.clinic.settings);
       else if (r.status === 401) window.location.href = "/clinic";
-    });
+    })();
   }, []);
 
   const hasBad = Object.values(drafts).some((t) => !isValid(t));

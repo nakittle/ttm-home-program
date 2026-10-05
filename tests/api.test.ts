@@ -16,12 +16,12 @@ import { POST as consent } from "@/app/api/p/[code]/consent/route";
 import { POST as postSession } from "@/app/api/p/[code]/sessions/route";
 import { POST as deleteMine } from "@/app/api/p/[code]/delete/route";
 import { GET as calendar } from "@/app/api/p/[code]/calendar/route";
-import { POST as dtamLogin } from "@/app/api/dtam/login/route";
+import { POST as clinicDemo } from "@/app/api/clinic/demo/route";
 import { GET as dtamSummaryRoute } from "@/app/api/dtam/summary/route";
 import { POST as demoReset } from "@/app/api/demo/reset/route";
 
 process.env.SESSION_SECRET = "test-secret-test-secret-test-secret-123";
-process.env.DTAM_DEMO_PASSWORD = "dtam-demo";
+process.env.OPEN_CLINIC_CODE = "CLINIC2";
 
 const BASE = "http://localhost:3000";
 const post = (path: string, body: unknown, cookie = "") =>
@@ -253,13 +253,20 @@ describe("clinic dashboard and settings", () => {
 });
 
 describe("DTAM and demo", () => {
-  it("DTAM summary needs the demo password", async () => {
-    expect((await dtamSummaryRoute(get("/api/dtam/summary"))).status).toBe(401);
-    expect((await dtamLogin(post("/api/dtam/login", { password: "nope" }))).status).toBe(401);
-    const c = cookieOf(await dtamLogin(post("/api/dtam/login", { password: "dtam-demo" })));
-    const res = await dtamSummaryRoute(get("/api/dtam/summary", c));
+  it("DTAM summary is open (aggregates only)", async () => {
+    const res = await dtamSummaryRoute(get("/api/dtam/summary"));
     expect(res.status).toBe(200);
     expect((await res.json()).clinics).toHaveLength(2);
+  });
+
+  it("open clinic entry gives a session for the demo clinic only, and keeps an existing PIN session", async () => {
+    const res = await clinicDemo(post("/api/clinic/demo", {}));
+    expect(res.status).toBe(200);
+    expect((await res.json()).clinic.code).toBe("CLINIC2");
+    const pinCookie = clinicCookie;
+    const kept = await clinicDemo(post("/api/clinic/demo", {}, pinCookie));
+    expect((await kept.json()).kept).toBe(true);
+    expect(kept.headers.get("set-cookie")).toBeNull();
   });
 
   it("demo reset is off without a token and reseeds with one", async () => {
