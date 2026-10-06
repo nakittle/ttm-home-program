@@ -59,10 +59,10 @@ export default function SettingsPage() {
     <ClinicShell>
       <div className="mx-auto max-w-3xl space-y-5">
         <div className="rise">
-          <h1 className="font-display text-[36px] font-bold leading-tight text-brand">
+          <h1 className="font-display text-[36px] font-bold leading-[1.4] text-brand">
             กฎ<span className="text-clay-ink">ธงแดง</span>
           </h1>
-          <p className="text-base text-muted">เปิด/ปิดกฎและปรับเกณฑ์ปวดของคลินิกนี้ กฎด้านความปลอดภัยปิดไม่ได้</p>
+          <p className="mt-2 text-base leading-relaxed text-muted">เปิด/ปิดกฎและปรับเกณฑ์ปวดของคลินิกนี้ กฎด้านความปลอดภัยปิดไม่ได้</p>
         </div>
         <p className="rise flex gap-3 rounded-3xl border border-gold bg-gold-tint p-4 text-base shadow-soft">
           <Info aria-hidden className="mt-1 h-5 w-5 shrink-0" strokeWidth={2} />

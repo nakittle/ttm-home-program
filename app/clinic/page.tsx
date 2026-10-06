@@ -292,10 +292,10 @@ export default function ClinicPage() {
     >
       <section className="rise flex flex-wrap items-end justify-between gap-4 pb-6">
         <div>
-          <h1 className="font-display text-[36px] font-bold leading-tight text-brand">
+          <h1 className="font-display text-[36px] font-bold leading-[1.4] text-brand">
             แผนผู้ป่วย<span className="text-clay-ink">ที่ดูแลอยู่</span>
           </h1>
-          <p className="text-base text-muted">
+          <p className="mt-2 text-base leading-relaxed text-muted">
             ข้อมูลล่าสุดเมื่อ {new Date(data.data_as_of).toLocaleTimeString("th-TH")} · อัปเดตเองทุก 30 วินาที
             {data.memory_store && " · โหมดทดลอง (ข้อมูลไม่ถูกบันทึกถาวร)"}
           </p>

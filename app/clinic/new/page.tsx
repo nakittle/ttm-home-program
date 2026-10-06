@@ -40,10 +40,10 @@ export default function NewPlanPage() {
     <ClinicShell>
       <div className="mx-auto max-w-3xl space-y-5">
         <div className="rise">
-          <h1 className="font-display text-[36px] font-bold leading-tight text-brand">
+          <h1 className="font-display text-[36px] font-bold leading-[1.4] text-brand">
             สร้างแผน<span className="text-clay-ink">การบ้านหลังนวด</span>
           </h1>
-          <p className="text-base text-muted">ไม่ต้องกรอกชื่อหรือ HN จดรหัสแผนบนใบนัดคู่กับ HN ในระบบของคลินิกเอง</p>
+          <p className="mt-2 text-base leading-relaxed text-muted">ไม่ต้องกรอกชื่อหรือ HN จดรหัสแผนบนใบนัดคู่กับ HN ในระบบของคลินิกเอง</p>
         </div>
 
         <Step n={1} title="กลุ่มอาการ" i={1}>
