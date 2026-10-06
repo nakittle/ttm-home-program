@@ -76,6 +76,7 @@ export function KpiTiles({ data }: { data: DtamSummary }) {
   const latest = w[w.length - 1]?.adherence ?? null;
   const prev = w[w.length - 2]?.adherence ?? null;
   const t = data.totals;
+  const shown = data.clinics.filter((c) => !c.hidden).length;
   return (
     <section aria-label="ตัวเลขสำคัญ" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {/* Hero: the one number the page leads with, with its 8-week trend. */}
@@ -87,21 +88,22 @@ export function KpiTiles({ data }: { data: DtamSummary }) {
           <Target aria-hidden className="h-5 w-5 text-brand-2" strokeWidth={2} />
           ทำตามแผน (เฉลี่ยทุกแผน)
         </p>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <p className="font-display text-[56px] leading-[1.1] font-bold text-brand sm:text-[64px]">{pct(t.adherence)}</p>
-          <Delta points={pointsDelta(latest, prev)} vs="จากสัปดาห์ก่อน" />
-        </div>
+        <p className="font-display text-[56px] leading-[1.1] font-bold text-brand sm:text-[64px]">{pct(t.adherence)}</p>
         <div className="mt-auto">
           <Sparkline values={w.map((x) => x.adherence)} />
-          <p className="mt-1 flex justify-between gap-3 text-base text-muted">
+          {/* The week-on-week change sits with this week's number, not the all-time one above. */}
+          <p className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-base text-muted">
             <span>{w[0] ? shortDate(w[0].week_start) : ""}</span>
-            <span>
-              สัปดาห์นี้ <span className="font-semibold text-foreground">{pct(latest)}</span>
+            <span className="ml-auto flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+              <span>
+                สัปดาห์นี้ <span className="font-semibold text-foreground">{pct(latest)}</span>
+              </span>
+              <Delta points={pointsDelta(latest, prev)} vs="จากสัปดาห์ก่อน" />
             </span>
           </p>
         </div>
       </div>
-      <Tile i={1} icon={ClipboardList} label="แผนที่ออก" value={String(t.plans)} note={`จาก ${data.clinics.length} ศูนย์`} />
+      <Tile i={1} icon={ClipboardList} label="แผนที่ออก" value={String(t.plans)} note={shown < data.clinics.length ? `รวมเฉพาะ ${shown} ศูนย์ที่แสดง` : `จาก ${data.clinics.length} ศูนย์`} />
       <Tile i={2} icon={Users} label="ผู้ป่วยที่ยังทำอยู่" value={String(t.active_patients)} note="ทำภายใน 14 วันล่าสุด" />
       <Tile i={3} icon={CircleCheckBig} label="มาครบคอร์ส" value={pct(t.completion_rate)} meter={t.completion_rate} note="ของแผนที่ปิดแล้ว" />
       <Tile i={4} icon={Camera} label="นับด้วยกล้อง" value={pct(t.camera_share)} meter={t.camera_share} note="ของท่าที่ทำทั้งหมด" />

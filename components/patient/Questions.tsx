@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Volume2, X } from "lucide-react";
 import { speak } from "@/lib/audio";
 import type { RedFlagRule } from "@/lib/content/schema";
-import type { Answers } from "@/lib/redflags";
+import { stopsSession, type Answers } from "@/lib/redflags";
 
 /** Back + Next row shared by the question screens. Next is the big one; Back is always there when there is somewhere to go. */
 function StepNav({ onBack, onNext, nextDisabled, nextLabel = "ถัดไป" }: { onBack?: () => void; onNext: () => void; nextDisabled: boolean; nextLabel?: string }) {
@@ -28,6 +28,7 @@ function StepNav({ onBack, onNext, nextDisabled, nextLabel = "ถัดไป" }
 /**
  * Symptom questions, one per screen, each with a listen button. `onBack` is called from the first question;
  * `onIndex` reports "question i of n" so the page header can show where the patient is.
+ * A "yes" to a rule that stops the session ends the questions there: the page goes straight to the stop / 1669 screen.
  */
 export function YesNoQuestions({
   rules,
@@ -56,6 +57,7 @@ export function YesNoQuestions({
   if (!r) return null;
   const answer = answers[r.id];
   const last = i === rules.length - 1;
+  const stop = answer === true && stopsSession(r.level);
   const set = (v: boolean) => setAnswers((a) => ({ ...a, [r.id]: v }));
   return (
     <div className="space-y-5">
@@ -91,7 +93,7 @@ export function YesNoQuestions({
       <StepNav
         onBack={i > 0 ? () => setI(i - 1) : onBack}
         nextDisabled={answer === undefined}
-        onNext={() => (last ? onDone(answers) : setI(i + 1))}
+        onNext={() => (stop || last ? onDone(answers) : setI(i + 1))}
       />
     </div>
   );

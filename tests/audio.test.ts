@@ -1,5 +1,7 @@
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { allSpokenTexts, CUES, textKey, THAI_NUMBERS } from "@/lib/audio-keys";
+import { allSpokenTexts, CUES, DIZZY_CHECK_TH, setupTip, textKey, THAI_NUMBERS } from "@/lib/audio-keys";
 import { postures } from "@/lib/content";
 import { pcmToMp3 } from "@/lib/mp3.mts";
 import { pcmToWav, rateFromMime } from "@/lib/wav";
@@ -17,7 +19,16 @@ describe("audio keys", () => {
     for (const p of postures) for (const s of p.steps_th) expect(texts).toContain(s);
     for (const n of THAI_NUMBERS) expect(texts).toContain(n);
     for (const c of Object.values(CUES)) expect(texts).toContain(c);
+    for (const p of postures) expect(texts).toContain(setupTip(p));
+    expect(texts).toContain(DIZZY_CHECK_TH);
     expect(new Set(texts.map(textKey)).size).toBe(texts.length); // no hash collisions
+  });
+
+  it("has a generated file for every text (else it falls back to the device voice)", () => {
+    const dir = path.resolve(import.meta.dirname, "..", "public", "audio");
+    const manifest = JSON.parse(readFileSync(path.join(dir, "manifest.json"), "utf8")) as Record<string, string>;
+    const missing = allSpokenTexts().filter((t) => !manifest[textKey(t)] || !existsSync(path.join(dir, manifest[textKey(t)])));
+    expect(missing, "run npm run tts").toEqual([]);
   });
 });
 

@@ -9,6 +9,7 @@ export interface QueuedSession {
 
 const KEY = "hp:outbox";
 const planKey = (code: string) => `hp:plan:${code}`;
+const FLUSH_TIMEOUT_MS = 10_000; // one stalled upload must not hold up the rest
 
 /** Every outbox mutation runs through this chain so read-modify-write cycles never interleave. */
 let chain: Promise<unknown> = Promise.resolve();
@@ -45,6 +46,18 @@ export function enqueue(item: QueuedSession): Promise<boolean> {
   });
 }
 
+/** Remove one session once the server has it (or will never take it). */
+export function dequeue(code: string, clientId: string): Promise<void> {
+  return exclusive(async () => {
+    try {
+      const list = await readStrict();
+      await set(KEY, list.filter((q) => !(q.code === code && q.body.client_id === clientId)));
+    } catch {
+      // could not write back: the item stays queued and the server dedupes it on the next flush
+    }
+  });
+}
+
 export async function pendingCount(code: string): Promise<number> {
   return (await readLenient()).filter((q) => q.code === code).length;
 }
@@ -59,18 +72,24 @@ export async function flush(code: string, secret: string): Promise<number> {
   const done = new Set<string>();
   let sent = 0;
   for (const q of snapshot) {
+    // AbortController + timer rather than AbortSignal.timeout, which older iPhones do not have.
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), FLUSH_TIMEOUT_MS);
     try {
       const res = await fetch(`/api/p/${code}/sessions`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ secret, session: q.body }),
+        signal: abort.signal,
       });
       if (res.ok || res.status === 400 || res.status === 410) {
         sent++; // 400/410 will never succeed: drop
         done.add(q.body.client_id);
       }
     } catch {
-      // offline or server error: keep for the next flush
+      // offline, timed out or server error: keep for the next flush
+    } finally {
+      clearTimeout(timer);
     }
   }
   if (done.size > 0) {

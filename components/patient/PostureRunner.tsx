@@ -4,7 +4,7 @@ import {
   Armchair, Camera, CameraOff, Check, CircleAlert, CircleCheck, Hand, PersonStanding, RefreshCw, Repeat, ShieldCheck, Timer, UserRound, Volume2, Zap, ZoomIn,
   type LucideIcon,
 } from "lucide-react";
-import { CUES, THAI_NUMBERS } from "@/lib/audio-keys";
+import { CUES, setupTip, THAI_NUMBERS } from "@/lib/audio-keys";
 import { speak, stopSpeaking } from "@/lib/audio";
 import { creditLine, sheetUrl } from "@/lib/content";
 import type { Posture } from "@/lib/content/schema";
@@ -19,13 +19,6 @@ export type DuringButton = "sharp_pain" | "dizzy" | "unsteady";
 
 const SIDE_TH: Record<Side, string> = { L: "ข้างซ้าย", R: "ข้างขวา" };
 const POSITION_TH = { sitting_floor: "นั่งพื้น", standing: "ยืน", kneeling: "คุกเข่า" } as const;
-
-function setupTip(p: Posture): string {
-  const low = p.position !== "standing";
-  const where = low ? "วางมือถือตั้งพิงกับของบนพื้นหรือเก้าอี้เตี้ย สูงจากพื้นราว 20–50 ซม." : "วางมือถือตั้งพิงบนโต๊ะหรือชั้น สูงราวระดับอก";
-  const view = p.detector.view === "side" ? "หันด้านข้างให้กล้อง" : "หันหน้าเข้าหากล้อง";
-  return `${where} ถอยห่างราว 2 เมตร ${view} ให้เห็นทั้งตัว`;
-}
 
 type Mode = "intro" | "loading" | "setup" | "calibrate" | "run" | "button";
 
@@ -95,7 +88,12 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
         return;
       }
       streamRef.current = stream;
-      speak(setupTip(posture));
+      let tipDone = false; // the get-in-frame cue never cuts off the setup tip
+      void withTimeout(speak(setupTip(posture)), 15_000)
+        .catch(() => {})
+        .finally(() => {
+          tipDone = true;
+        });
       let buf: Frame[] = [];
       let calibFrames: Frame[] = [];
       let calib: Calibration | null = null;
@@ -106,8 +104,17 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
       let lastPhase = session.phase;
       let lastUi = 0;
       let lastOk = false;
+      let calibFails = 0;
+      let outSince: number | null = null; // body not fully seen since (setup)
+      let lastFrameCue = -Infinity;
       const t0 = performance.now();
       let lastDetected = t0; // last time the body was fully seen (setup) or in the pose (run)
+      /** Say "get in frame" at most every 12 s: a patient 2 m away may not be able to read the screen. */
+      const frameCue = (now: number) => {
+        if (!tipDone || now - lastFrameCue < 12_000) return;
+        lastFrameCue = now;
+        speak(CUES.get_in_frame);
+      };
       stopRef.current = runLoop(video, landmarker, (frame, fpsNow) => {
         if (!alive()) return;
         const now = performance.now();
@@ -120,7 +127,14 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
         if (fpsNow < 8 && now - t0 > 3000) lowFpsSince ??= now;
         else lowFpsSince = null;
         if (lowFpsSince && now - lowFpsSince > 5000) setOfferButton(true);
-        if (now - lastDetected > 15_000) setOfferButton(true); // any phase
+        if (now - lastDetected > 15_000) {
+          setOfferButton(true); // any phase
+          // Before calibration, also show and say why (covers frames with no body found at all).
+          if (!calib) {
+            setHint(CUES.get_in_frame);
+            frameCue(now);
+          }
+        }
 
         if (frame) buf = [...buf.slice(-4), frame];
         const f = frame ? medianFrame(buf) : null;
@@ -136,15 +150,21 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
             visibleSince = null;
             calibFrames = [];
             setHint(CUES.get_in_frame);
+            outSince ??= now;
+            if (now - outSince > 4000) frameCue(now);
             return;
           }
+          outSince = null;
           lastDetected = now;
           visibleSince ??= now;
           if (now - visibleSince < 1000) return;
           if (calibFrames.length === 0) {
             setMode("calibrate");
-            setHint(CUES.hold_still);
-            speak(CUES.hold_still);
+            // After two failed tries keep trying without "hold still", so the get-in-frame cue below is not cut off.
+            if (calibFails < 2) {
+              setHint(CUES.hold_still);
+              speak(CUES.hold_still);
+            }
           }
           calibFrames.push(f);
           if (now - visibleSince >= 3000) {
@@ -156,6 +176,12 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
             } else {
               visibleSince = null;
               calibFrames = [];
+              if (++calibFails === 2) {
+                setOfferButton(true);
+                setHint(CUES.get_in_frame);
+                lastFrameCue = now;
+                speak(CUES.get_in_frame);
+              }
             }
           }
           return;
@@ -179,11 +205,22 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
             lastSpoken = 0;
             speak(det.mode === "hold" ? CUES.start_hold : posture.name_th);
           }
-          if (session.phase === "release") speak(det.sides === "alternate" ? `${CUES.release} ${CUES.switch_side}` : CUES.release);
+          if (session.phase === "release") {
+            const switchSide = det.sides === "alternate" && session.unitsDone < session.unitsTarget; // not after the last unit
+            speak(switchSide ? CUES.release_switch : CUES.release);
+          }
           if (session.phase === "done") {
-            speak(CUES.posture_done);
+            // Let "ครบแล้ว เก่งมาก" play before moving on (at most 3 s); a stop or "ใช้ปุ่มแทน" tap meanwhile wins.
             stopCamera();
-            report(toResult(posture.id, session));
+            const after = attemptRef.current;
+            const r = toResult(posture.id, session);
+            setView(session);
+            setHint(CUES.posture_done);
+            void withTimeout(speak(CUES.posture_done), 3000)
+              .catch(() => {})
+              .finally(() => {
+                if (attemptRef.current === after) report(r);
+              });
             return;
           }
           lastPhase = session.phase;
@@ -195,6 +232,12 @@ export function PostureRunner({ posture, onDone, onButton }: { posture: Posture;
           setInPose(ok);
           setFps(fpsNow);
         }
+      }, () => {
+        // The model or a frame threw: same as a camera that fails to start.
+        if (!alive()) return;
+        stopCamera();
+        setCameraFailed(true);
+        setMode("button");
       });
     } catch {
       if (stream && streamRef.current !== stream) closeCamera(stream);

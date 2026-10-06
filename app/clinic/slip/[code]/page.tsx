@@ -31,12 +31,22 @@ export default function SlipPage() {
       Promise.resolve().then(() => setErr("ไม่มีรหัสลับในลิงก์ ให้กด “ออกใบนัดใหม่” จากหน้าคลินิก"));
       return;
     }
-    const url = `${window.location.origin}/p/${code}#${secret}`;
-    QRCode.toDataURL(url, { margin: 0, width: 480, errorCorrectionLevel: "M", color: { dark: "#1f2f25", light: "#ffffff" } })
-      .then(setQr)
-      .catch(() => setErr("สร้าง QR ไม่สำเร็จ ลองใหม่อีกครั้ง"));
-    api<PlanView>(`/api/p/${code}/plan`, { body: { secret } }).then((r) => (r.ok ? setPlan(r.data) : setErr(r.message_th ?? "โหลดแผนไม่ได้")));
+    api<PlanView>(`/api/p/${code}/plan`, { body: { secret } }).then((r) => {
+      if (!r.ok) return setErr(r.message_th ?? "โหลดแผนไม่ได้");
+      setPlan(r.data);
+      // QR only after the secret checks out, so an old slip link never prints a dead QR.
+      const url = `${window.location.origin}/p/${code}#${secret}`;
+      return QRCode.toDataURL(url, { margin: 0, width: 480, errorCorrectionLevel: "M", color: { dark: "#1f2f25", light: "#ffffff" } })
+        .then(setQr)
+        .catch(() => setErr("สร้าง QR ไม่สำเร็จ ลองใหม่อีกครั้ง"));
+    });
   }, [code]);
+
+  // One group has at most 5 postures. 6–13 (2–3 groups) get a compact two-column list, and a smaller QR past 10,
+  // so the 1669 box, the clinic phone and the credit stay on the A6 page.
+  const count = plan?.posture_ids.length ?? 0;
+  const many = count > 5;
+  const qrSize = count > 10 ? "h-[30mm] w-[30mm]" : "h-[38mm] w-[38mm]";
 
   return (
     <main className="slip-page flex flex-1 flex-col items-center gap-5 px-4 py-6">
@@ -45,7 +55,7 @@ export default function SlipPage() {
           <ArrowLeft aria-hidden className="h-5 w-5" strokeWidth={2} />
           คลินิก
         </Link>
-        <button className="btn min-h-12 px-5 text-base" onClick={() => window.print()}>
+        <button className="btn min-h-12 px-5 text-base" disabled={!plan || !qr} onClick={() => window.print()}>
           <Printer aria-hidden className="h-5 w-5" strokeWidth={2} />
           พิมพ์ใบนัด (A6)
         </button>
@@ -71,7 +81,7 @@ export default function SlipPage() {
 
         <section className="mt-[3.5mm] flex items-stretch gap-[3.5mm]">
           <div className="flex shrink-0 flex-col items-center gap-[1.5mm] rounded-[4mm] border border-line bg-white p-[2.5mm]">
-            {qr ? <img src={qr} alt="QR เปิดแผนการบ้าน" className="h-[38mm] w-[38mm]" /> : <span className="h-[38mm] w-[38mm] rounded-[2mm] bg-sage-tint" />}
+            {qr ? <img src={qr} alt="QR เปิดแผนการบ้าน" className={qrSize} /> : <span className={`${qrSize} rounded-[2mm] bg-sage-tint`} />}
             <span className="flex items-center gap-1 text-[11px] font-semibold text-brand">
               <ScanLine aria-hidden className="h-[3.5mm] w-[3.5mm]" strokeWidth={2.25} />
               สแกนด้วยกล้องมือถือ
@@ -101,10 +111,15 @@ export default function SlipPage() {
         {plan && (
           <section className="mt-[3.5mm]">
             <h2 className="text-[13px] font-semibold text-foreground">ท่าที่แพทย์แผนไทยสั่ง</h2>
-            <ol className="mt-[1.5mm] grid gap-[1.2mm]">
+            <ol className={`mt-[1.5mm] grid ${many ? "grid-cols-2 gap-x-[3mm] gap-y-[1mm]" : "gap-[1.2mm]"}`}>
               {plan.posture_ids.map((id, i) => (
-                <li key={id} className="flex items-center gap-[2mm] text-[12.5px] leading-snug">
-                  <span aria-hidden className="flex h-[5mm] w-[5mm] shrink-0 items-center justify-center rounded-[1.5mm] bg-sage-tint text-[11px] font-bold text-brand">
+                <li key={id} className={`flex items-center gap-[2mm] leading-snug ${many ? "text-[11.5px]" : "text-[12.5px]"}`}>
+                  <span
+                    aria-hidden
+                    className={`flex shrink-0 items-center justify-center rounded-[1.5mm] bg-sage-tint font-bold text-brand ${
+                      many ? "h-[4.5mm] w-[4.5mm] text-[10px]" : "h-[5mm] w-[5mm] text-[11px]"
+                    }`}
+                  >
                     {i + 1}
                   </span>
                   {getPosture(id).name_th}

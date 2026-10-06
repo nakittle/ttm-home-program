@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { BellRing, CalendarCheck, Camera, Check, ChevronDown, CircleCheck, ClipboardList, DoorOpen, LogIn, NotebookPen, Printer, Square } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 import type { DashboardItem } from "@/lib/aggregate";
-import { api, enterOpenClinic, markClinicLoggedOut, pct, thaiDate, type ApiResult } from "@/lib/client";
+import { api, clearClinicLoggedOut, enterOpenClinic, markClinicLoggedOut, pct, thaiDate, type ApiResult } from "@/lib/client";
 import { getGroup, getPosture } from "@/lib/content";
 import { ruleById } from "@/lib/redflags";
 import { LevelBadge } from "@/components/LevelBadge";
@@ -31,8 +31,10 @@ function Login({ onDone }: { onDone: () => void }) {
           setBusy(true);
           const r = await api("/api/clinic/login", { body: { code, pin } });
           setBusy(false);
-          if (r.ok) onDone();
-          else setErr(r.message_th ?? "เข้าสู่ระบบไม่สำเร็จ");
+          if (r.ok) {
+            clearClinicLoggedOut();
+            onDone();
+          } else setErr(r.message_th ?? "เข้าสู่ระบบไม่สำเร็จ");
         }}
       >
         <div className="flex items-center gap-3">
@@ -261,14 +263,16 @@ export default function ClinicPage() {
   }, []);
 
   useEffect(() => {
-    // Initial fetch + refresh every 30 s so new red flags appear without reloading.
     const first = setTimeout(load, 0);
-    const timer = setInterval(load, 30_000);
-    return () => {
-      clearTimeout(first);
-      clearInterval(timer);
-    };
+    return () => clearTimeout(first);
   }, [load]);
+
+  useEffect(() => {
+    // Refresh every 30 s so new red flags appear without reloading, but never behind the PIN form.
+    if (needLogin) return;
+    const timer = setInterval(load, 30_000);
+    return () => clearInterval(timer);
+  }, [load, needLogin]);
 
   if (needLogin) return <Login onDone={load} />;
   if (!data) return <main className="flex flex-1 items-center justify-center px-5 py-12 text-xl text-muted">{offline ? "เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง" : "กำลังโหลด…"}</main>;

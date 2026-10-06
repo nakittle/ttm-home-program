@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { hashPin } from "@/lib/auth";
 import { setStore } from "@/lib/db";
 import { MemoryStore } from "@/lib/db/memory";
@@ -19,6 +19,7 @@ import { GET as calendar } from "@/app/api/p/[code]/calendar/route";
 import { POST as clinicDemo } from "@/app/api/clinic/demo/route";
 import { GET as dtamSummaryRoute } from "@/app/api/dtam/summary/route";
 import { POST as demoReset } from "@/app/api/demo/reset/route";
+import { NoDemoPinError, refreshDemo, SEED_PLAN_CODES, seedDemo } from "@/lib/seed";
 
 process.env.SESSION_SECRET = "test-secret-test-secret-test-secret-123";
 process.env.OPEN_CLINIC_CODE = "CLINIC2";
@@ -44,6 +45,11 @@ beforeEach(async () => {
   clinicCookie = cookieOf(res);
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
+
 async function newPlan(cookie = clinicCookie) {
   const res = await createPlan(post("/api/plans", {
     group_ids: ["knee"], posture_ids: ["kae-klon", "damrong-kai-ayu-yuen"], days_per_week: 7, remind_time: "19:00",
@@ -67,6 +73,22 @@ describe("clinic auth", () => {
   it("rejects a wrong pin and locks after 5 failures", async () => {
     for (let i = 0; i < 5; i++) expect((await login(post("/api/clinic/login", { code: "CLINIC2", pin: "000000" }))).status).toBe(401);
     expect((await login(post("/api/clinic/login", { code: "CLINIC2", pin: "654321" }))).status).toBe(429);
+  });
+  it("counts parallel wrong PINs, so they cannot all slip past the lock", async () => {
+    const wrong = () => login(post("/api/clinic/login", { code: "CLINIC2", pin: "000000" }));
+    const statuses = (await Promise.all(Array.from({ length: 10 }, wrong))).map((r) => r.status);
+    expect(statuses.filter((s) => s === 401)).toHaveLength(5);
+    expect(statuses.filter((s) => s === 429)).toHaveLength(5);
+  });
+  it("starts counting again once a lock has run out, so one typo does not lock again", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-09T09:00:00Z"));
+    const tryPin = (pin: string) => login(post("/api/clinic/login", { code: "CLINIC2", pin }));
+    for (let i = 0; i < 5; i++) expect((await tryPin("000000")).status).toBe(401);
+    expect((await tryPin("654321")).status).toBe(429);
+    vi.setSystemTime(new Date("2026-10-09T09:05:01Z"));
+    expect((await tryPin("000000")).status).toBe(401);
+    expect((await tryPin("654321")).status).toBe(200);
   });
   it("requires login for clinic routes", async () => {
     expect((await dashboard(get("/api/clinic/dashboard"))).status).toBe(401);
@@ -228,6 +250,24 @@ describe("patient flow", () => {
     expect(store.plans[0].consent_at).toBeNull();
     expect(store.plans[0].closed_at).toBe("2026-10-01T09:00:00Z");
   });
+
+  it("'ลบข้อมูลของฉัน' on the protected demo plan (TCX-86) deletes the data but keeps the plan open", async () => {
+    const { body } = await newPlan();
+    store.plans[0].code = "TCX-86";
+    const p = params({ code: "TCX-86" });
+    await consent(post("/api/p/TCX-86/consent", { secret: body.secret }), p);
+    await postSession(post("/api/p/TCX-86/sessions", { secret: body.secret, session: session({ answers: { RF04: true } }) }), p);
+    const res = await deleteMine(post("/api/p/TCX-86/delete", { secret: body.secret }), p);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    expect(store.sessions).toHaveLength(0);
+    expect(store.flags).toHaveLength(0);
+    expect(store.plans[0]).toMatchObject({ status: "active", consent_at: null, closed_at: null });
+    // The next judge who scans the QR gets the plan and the consent screen again.
+    const again = await getPlan(post("/api/p/TCX-86/plan", { secret: body.secret }), p);
+    expect(await again.json()).toMatchObject({ status: "active", consent_at: null });
+    expect((await postSession(post("/api/p/TCX-86/sessions", { secret: body.secret, session: session({ client_id: "client-0002" }) }), p)).status).toBe(403);
+  });
 });
 
 describe("clinic dashboard and settings", () => {
@@ -250,6 +290,15 @@ describe("clinic dashboard and settings", () => {
     expect((await put({ disabled: ["RF01"], thresholds: {} })).status).toBe(400);
     expect((await put({ disabled: ["RF09"], thresholds: { RF08: 4 } })).status).toBe(200);
   });
+
+  it("stores each adjustable rule once and refuses unknown ids or a long list", async () => {
+    const put = (b: unknown) => putSettings(new Request(`${BASE}/api/clinic/settings`, { method: "PUT", headers: { cookie: clinicCookie }, body: JSON.stringify(b) }));
+    const ok = await put({ disabled: ["RF09", "RF09", "RF10"], thresholds: {} });
+    expect((await ok.json()).settings.disabled).toEqual(["RF09", "RF10"]);
+    expect(store.clinics[0].settings.disabled).toEqual(["RF09", "RF10"]);
+    expect((await put({ disabled: Array(6).fill("RF09"), thresholds: {} })).status).toBe(400);
+    expect((await put({ disabled: ["RF99"], thresholds: {} })).status).toBe(400);
+  });
 });
 
 describe("DTAM and demo", () => {
@@ -269,13 +318,58 @@ describe("DTAM and demo", () => {
     expect(kept.headers.get("set-cookie")).toBeNull();
   });
 
-  it("demo reset is off without a token and reseeds with one", async () => {
+  it("open clinic entry replaces a session whose clinic no longer exists", async () => {
+    store.clinics = store.clinics.filter((c) => c.code !== "CLINIC1");
+    const res = await clinicDemo(post("/api/clinic/demo", {}, clinicCookie));
+    expect((await res.json()).clinic.code).toBe("CLINIC2");
+    expect(res.headers.get("set-cookie")).toMatch(/^hp_clinic=.+/);
+  });
+
+  it("demo reset is off without a token and refreshes the demo plans with one", async () => {
     delete process.env.DEMO_RESET_TOKEN;
     expect((await demoReset(post("/api/demo/reset", { token: "whatever-token" }))).status).toBe(404);
     process.env.DEMO_RESET_TOKEN = "reset-token-123";
+    vi.stubEnv("DEMO_CLINIC_PIN", "");
+    const noPin = await demoReset(post("/api/demo/reset", { token: "reset-token-123" }));
+    expect(noPin.status).toBe(409);
+    expect(store.clinics.map((c) => c.code)).toEqual(["CLINIC1", "CLINIC2"]);
+    vi.stubEnv("DEMO_CLINIC_PIN", "111111");
     const res = await demoReset(post("/api/demo/reset", { token: "reset-token-123" }));
     expect(res.status).toBe(200);
-    expect(store.clinics.map((c) => c.code)).toEqual(["DEMO-A", "DEMO-B", "DEMO-C"]);
+    expect(store.clinics.map((c) => c.code)).toEqual(["CLINIC1", "CLINIC2", "DEMO-A", "DEMO-B", "DEMO-C"]);
+    expect(store.plans).toHaveLength(60);
+  });
+
+  it("refreshes only the seeded plans: protected and visitor plans, PINs and settings stay", async () => {
+    const s = new MemoryStore();
+    await seedDemo(s, "2026-10-04", "111111");
+    const a = (await s.getClinicByCode("DEMO-A"))!;
+    const b = (await s.getClinicByCode("DEMO-B"))!;
+    const pinHash = a.pin_hash;
+    await s.updateClinicSettings(b.id, { disabled: ["RF09"], thresholds: {} });
+    const fields = { secret_hash: "x", group_ids: ["knee"], posture_ids: ["kae-klon"], days_per_week: 7, remind_time: "19:00", start_date: "2026-09-20", next_visit_date: "2026-10-20" };
+    const tcx = await s.insertPlan({ ...fields, code: "TCX-86", clinic_id: a.id });
+    const visitor = await s.insertPlan({ ...fields, code: "KPQ-23", clinic_id: b.id });
+    await s.insertSession({ plan_id: visitor.id, performed_on: "2026-10-05", pain_before: 3, pain_after: 2, results: [], answers: {}, client_id: "judge-0001" });
+    const startBefore = new Map(s.plans.map((p) => [p.code, p.start_date]));
+
+    const out = await refreshDemo(s, "2026-10-09"); // no PIN needed: the clinics exist
+    expect(out).toMatchObject({ removed: 60, plans: 60 });
+    expect(s.clinics).toHaveLength(3);
+    expect((await s.getClinicByCode("DEMO-A"))!.pin_hash).toBe(pinHash);
+    expect((await s.getClinicByCode("DEMO-B"))!.settings.disabled).toEqual(["RF09"]);
+    expect(s.plans).toHaveLength(62);
+    expect((await s.getPlanByCode("TCX-86"))!.id).toBe(tcx.id);
+    expect((await s.getPlanByCode("KPQ-23"))!.id).toBe(visitor.id);
+    expect(s.sessions.filter((x) => x.plan_id === visitor.id)).toHaveLength(1);
+    for (const code of SEED_PLAN_CODES) expect((await s.getPlanByCode(code))!.start_date).toBe(addDays(startBefore.get(code)!, 5));
+
+    vi.stubEnv("PROTECTED_PLAN_CODES", `TCX-86,${SEED_PLAN_CODES[0]}`);
+    await expect(refreshDemo(s, "2026-10-10")).rejects.toThrow(/PROTECTED_PLAN_CODES/);
+    vi.unstubAllEnvs();
+    s.clinics = s.clinics.filter((c) => c.code !== "DEMO-C");
+    await expect(refreshDemo(s, "2026-10-10")).rejects.toThrow(NoDemoPinError);
+    expect(s.plans).toHaveLength(62); // neither failure deleted anything
   });
 });
 

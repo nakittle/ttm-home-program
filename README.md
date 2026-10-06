@@ -40,7 +40,7 @@ npm run dev                     # ดาวน์โหลดโมเดล Med
 curl -X POST http://localhost:3000/api/demo/reset -H "content-type: application/json" -d "{\"token\":\"<DEMO_RESET_TOKEN>\"}"
 ```
 
-คลินิกเดโม: `DEMO-A`, `DEMO-B`, `DEMO-C` PIN = `DEMO_CLINIC_PIN`
+คลินิกเดโม: `DEMO-A`, `DEMO-B`, `DEMO-C` PIN = `DEMO_CLINIC_PIN` (ใช้ตอนสร้างคลินิกครั้งแรก) เรียกซ้ำได้ จะสร้างเฉพาะแผนจำลองใหม่ด้วยวันที่วันนี้ คลินิกและแผนอื่นอยู่ครบ
 
 ## คำสั่ง
 
@@ -49,7 +49,9 @@ curl -X POST http://localhost:3000/api/demo/reset -H "content-type: application/
 | `npm test` | เทสต์ทั้งหมด (Vitest) |
 | `npm run typecheck` / `npm run lint` | ตรวจ type และ lint |
 | `npm run build` | build (ดาวน์โหลด MediaPipe ก่อน) |
-| `npm run seed` | ใส่ข้อมูลจำลองลง Supabase (`-- --reset` ล้างก่อน) |
+| `npm run seed` | ใส่ข้อมูลจำลองลง Supabase ครั้งแรก (ต้องตั้ง `DEMO_CLINIC_PIN`) |
+| `npm run seed -- --refresh` | สร้างเฉพาะแผนจำลองใหม่ด้วยวันที่วันนี้ คลินิก PIN TCX-86 และแผนที่คนสร้างไว้อยู่ครบ |
+| `npm run seed -- --reset` | ล้างทั้งฐานข้อมูลก่อน ไม่ยอมทำถ้ายังมีแผนที่ป้องกันไว้ (`PROTECTED_PLAN_CODES` ค่าเริ่มต้น TCX-86) เว้นแต่ใส่ `--wipe-everything` ด้วย |
 | `npm run tts -- --sample` | สร้างเสียงตัวอย่าง 3 ไฟล์ (ฟังก่อน) แล้ว `npm run tts` สร้างที่เหลือ |
 | `npm run images` | สร้างภาพแผ่นท่า `public/postures/*.webp` จาก `../research/content/sources` |
 | `npm run purge` | ลบแผนที่ปิดครบ 90 วัน |
@@ -60,7 +62,7 @@ curl -X POST http://localhost:3000/api/demo/reset -H "content-type: application/
 2. SQL Editor → วาง `supabase/schema.sql` → Run
 3. Settings → API → คัดลอก URL และ service_role key ใส่ `.env.local` และ Vercel (ห้ามวางใน chat)
 4. Vercel: `vercel.json` ตั้ง Functions ไว้ที่ Singapore (`sin1`) ให้อยู่ใกล้ฐานข้อมูล ตรวจใน Settings → Functions → Region หลัง deploy
-5. ใส่ข้อมูลเดโมด้วย `npm run seed -- --reset` จากเครื่องของทีม (ไม่ใช้ `/api/demo/reset` บน Vercel เพราะช้าเกินสำหรับ serverless ข้ามภูมิภาค)
+5. ใส่ข้อมูลเดโมด้วย `npm run seed` จากเครื่องของทีม และก่อนกรรมการเข้าดูใช้ `npm run seed -- --refresh` ให้วันที่เป็นปัจจุบัน (ไม่ใช้ `/api/demo/reset` บน Vercel เพราะช้าเกินสำหรับ serverless ข้ามภูมิภาค)
 
 ## ที่มาของเนื้อหา
 

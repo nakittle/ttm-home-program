@@ -88,6 +88,8 @@ export interface Store {
   deletePlanData(planId: string): Promise<void>;
   /** Delete plans closed before the date together with their data. Returns how many plans. */
   purgeClosedBefore(isoDate: string): Promise<number>;
+  /** Demo refresh: delete these plans together with their data. Returns how many plans. */
+  deletePlansByCode(codes: string[]): Promise<number>;
   /** Demo only: remove everything. */
   resetAll(): Promise<void>;
 }

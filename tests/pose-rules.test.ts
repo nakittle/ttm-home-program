@@ -81,4 +81,14 @@ describe("posture rules on hand-made frames", () => {
     expect(requiredVisible(det, frame(STANDING_FRONT, 0, ["L_ANKLE"]), null)).toBe(false);
     expect(requiredVisible(getPosture("kae-kiat").detector, frame(SITTING_FRONT), "R")).toBe(true);
   });
+
+  it("is not in view while the far hip is hidden, since calibration would fail", () => {
+    const det = getPosture("kae-khao-khat").detector; // side view: near-side hip, knee, ankle and wrist only
+    const fx = FIXTURES["kae-khao-khat"];
+    const f = frame(fx.neutral, 0, ["R_HIP"], fx.dim);
+    expect(det.required.every((n) => !n.includes("R_"))).toBe(true);
+    expect(calibrate([f])).toBeNull();
+    expect(requiredVisible(det, f, null)).toBe(false);
+    expect(requiredVisible(det, frame(fx.neutral, 0, [], fx.dim), null)).toBe(true);
+  });
 });

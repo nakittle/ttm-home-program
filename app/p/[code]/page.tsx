@@ -5,11 +5,11 @@ import {
   CalendarPlus, Check, ChevronDown, ChevronRight, CircleCheck, Clock, CloudUpload, House, ListChecks, LogOut, Play, RotateCcw, Settings, Trash2, Volume2, WifiOff, X,
 } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
-import { CUES } from "@/lib/audio-keys";
+import { CUES, DIZZY_CHECK_TH } from "@/lib/audio-keys";
 import { speak, unlockAudio } from "@/lib/audio";
-import { api, thaiDate, todayLocal } from "@/lib/client";
+import { api, thaiDate, todayLocal, withTimeout } from "@/lib/client";
 import { getGroup, getPosture, rulesAskedAt } from "@/lib/content";
-import { enqueue, flush, forgetPlan, loadPlan, pendingCount, savePlan } from "@/lib/offline";
+import { dequeue, enqueue, flush, forgetPlan, loadPlan, pendingCount, savePlan } from "@/lib/offline";
 import type { PostureResult } from "@/lib/pose/session";
 import {
   advance,
@@ -18,6 +18,7 @@ import {
   emptyRun,
   flagsFor,
   isRetryableStatus,
+  reportedSymptom,
   sessionBody,
   skippedResult,
   stopRun,
@@ -53,6 +54,7 @@ type SaveState = "sending" | "sent" | "queued" | "saveFailed" | "notSent";
 type Stage =
   | { s: "loading" }
   | { s: "error"; msg: string }
+  | { s: "closed" } // closed by the clinic, patient data still kept: the patient can still delete it
   | { s: "consent" }
   | { s: "home" }
   | { s: "pre" }
@@ -100,7 +102,8 @@ function HeaderArt() {
   );
 }
 const stopKey = (code: string) => `hp:stop:${code}`; // {day, rule}: today's run was stopped for safety
-const isStop = (f: FiredFlag | null | undefined) => f?.level === "call_1669" || f?.level === "stop_and_contact_clinic";
+const isStop = (f: FiredFlag | null | undefined): f is FiredFlag => f?.level === "call_1669" || f?.level === "stop_and_contact_clinic";
+const CLOSED_TH = "แผนนี้ปิดแล้ว ขอบคุณที่ทำการบ้าน หากมีอาการผิดปกติโปรดติดต่อคลินิก";
 
 export default function PatientPage() {
   const { code } = useParams<{ code: string }>();
@@ -109,8 +112,10 @@ export default function PatientPage() {
   const [stage, setStage] = useState<Stage>({ s: "loading" });
   const [pending, setPending] = useState(0);
   const [offline, setOffline] = useState(false);
-  const [doneToday, setDoneToday] = useState(false);
-  const [stopToday, setStopToday] = useState<FiredFlag | null>(null); // a stop-level outcome today: home shows it, never "do it again"
+  // Days, not booleans: "today" is read at render, so a tab left open overnight shows the new day.
+  const [doneDay, setDoneDay] = useState<string | null>(null); // last day a run was done
+  const [stopDay, setStopDay] = useState<{ day: string; flag: FiredFlag } | null>(null); // last stop-level outcome: on that day home shows it, never "do it again"
+  const [, setTick] = useState(0); // bumped when the tab is shown again, to re-read today
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [threads, setThreads] = useState<Thread[]>([]); // per posture this run: done / skipped, for the header warp
@@ -130,7 +135,6 @@ export default function PatientPage() {
       p = r.data;
       await savePlan(code, p);
       setOffline(false);
-      await flush(code, sec);
     } else if (isRetryableStatus(r.status)) {
       p = await loadPlan<Plan>(code); // offline, rate-limited or server error: last plan seen online
       setOffline(true);
@@ -141,12 +145,14 @@ export default function PatientPage() {
     setPlan(p);
     setPending(await pendingCount(code));
     try {
-      setDoneToday(localStorage.getItem(lastDoneKey(code)) === todayLocal());
-      const stop = JSON.parse(localStorage.getItem(stopKey(code)) ?? "null") as { day: string; flag: FiredFlag } | null;
-      setStopToday(stop?.day === todayLocal() ? stop.flag : null);
+      setDoneDay(localStorage.getItem(lastDoneKey(code)));
+      setStopDay(JSON.parse(localStorage.getItem(stopKey(code)) ?? "null") as { day: string; flag: FiredFlag } | null);
     } catch {}
-    if (p.status !== "active") return setStage({ s: "error", msg: "แผนนี้ปิดแล้ว ขอบคุณที่ทำการบ้าน หากมีอาการผิดปกติโปรดติดต่อคลินิก" });
-    setStage(p.consent_at ? { s: "home" } : { s: "consent" });
+    // A closed plan whose data is still kept offers "ลบข้อมูลของฉัน"; one the patient already deleted only says it is closed.
+    if (p.status !== "active") setStage(p.consent_at ? { s: "closed" } : { s: "error", msg: CLOSED_TH });
+    else setStage(p.consent_at ? { s: "home" } : { s: "consent" });
+    // Queued sessions go up in the background: the plan is already on screen.
+    if (r.ok) void flush(code, sec).then(async () => setPending(await pendingCount(code)));
   }, [code]);
 
   useEffect(() => {
@@ -159,6 +165,15 @@ export default function PatientPage() {
     return () => clearTimeout(t);
   }, [load]);
 
+  // Coming back to a tab left open (e.g. overnight): render again so the date, greeting and done / stopped state are today's.
+  useEffect(() => {
+    const onShow = () => {
+      if (document.visibilityState === "visible") setTick((t) => t + 1);
+    };
+    document.addEventListener("visibilitychange", onShow);
+    return () => document.removeEventListener("visibilitychange", onShow);
+  }, []);
+
   /** Show the outcome at once (never wait on the network), then submit in the background. Runs once per run. */
   function finish(data: RunData) {
     if (!plan || finishing.current) return;
@@ -167,34 +182,39 @@ export default function PatientPage() {
     paused.current = null;
     run.current = data;
     const flags = flagsFor(data, plan.settings);
-    const body = sessionBody(data, clientId.current, todayLocal());
+    const today = todayLocal();
+    const body = sessionBody(data, clientId.current, today);
     const w = worst(flags);
     if (isStop(w)) {
       // A stopped day is not a done day: it is struck on the week strip and home shows the stop, not a repeat run.
       try {
-        localStorage.setItem(stopKey(code), JSON.stringify({ day: todayLocal(), flag: w }));
+        localStorage.setItem(stopKey(code), JSON.stringify({ day: today, flag: w }));
       } catch {}
-      setStopToday(w);
+      setStopDay({ day: today, flag: w });
     } else if (data.results.some((x) => x.method !== "skipped")) {
       try {
-        localStorage.setItem(lastDoneKey(code), todayLocal());
+        localStorage.setItem(lastDoneKey(code), today);
       } catch {}
-      setDoneToday(true);
+      setDoneDay(today);
     }
     setStage({ s: "result", runId: body.client_id, flags, save: "sending" });
     void submit(body);
   }
 
+  /** Kept in the outbox before sending (closing the tab mid-send loses nothing), removed once the server has answered for good. */
   async function submit(body: SessionBody) {
-    const r = await api(`/api/p/${code}/sessions`, { body: { secret, session: body } });
+    const stored = await enqueue({ code, body });
+    // A stalled request on weak signal ends as "queued" (it stays in the outbox; the server dedupes a late arrival).
+    const r = await withTimeout(api(`/api/p/${code}/sessions`, { body: { secret, session: body } }), 15_000).catch(() => ({ ok: false, status: 0 }));
     let save: SaveState = "sent";
     const outcome = classifySubmit(r.ok, r.status);
     if (outcome === "retry") {
-      save = (await enqueue({ code, body })) ? "queued" : "saveFailed";
-      setPending(await pendingCount(code));
-    } else if (outcome === "rejected") {
-      save = "notSent";
+      save = stored ? "queued" : "saveFailed";
+    } else {
+      await dequeue(code, body.client_id);
+      if (outcome === "rejected") save = "notSent";
     }
+    setPending(await pendingCount(code));
     setStage((st) => (st.s === "result" && st.runId === body.client_id ? { ...st, save } : st));
   }
 
@@ -256,13 +276,40 @@ export default function PatientPage() {
     setStage({ s: "pre" });
   }
 
-  /** Leave today's run from the header: nothing is sent, and late callbacks from the screen being left are ignored. */
+  /**
+   * Leave today's run from the header. A symptom the patient reported is still sent (the rest of the plan as skipped);
+   * otherwise nothing is sent. Late callbacks from the screen being left are ignored.
+   */
   function leaveRun() {
-    if (!confirm("ออกจากการบ้านวันนี้? รอบนี้จะยังไม่ถูกส่งให้คลินิก")) return;
+    // Leaving the stroke check unanswered still reports the dizziness (as the milder RF10).
+    const dizzy = stage.s === "dizzy_check" && plan ? { rule_id: "RF10", posture_id: plan.posture_ids[stage.i] } : null;
+    const data = dizzy ? { ...run.current, postureFlags: [...run.current.postureFlags, dizzy] } : run.current;
+    const report = !finishing.current && reportedSymptom(data);
+    if (!confirm(report ? "ออกจากการบ้านวันนี้? อาการที่บอกไว้จะถูกส่งให้คลินิก" : "ออกจากการบ้านวันนี้? รอบนี้จะยังไม่ถูกส่งให้คลินิก")) return;
+    if (report && plan) return finish(stopRun(data, plan.posture_ids));
     finishing.current = true;
     cursor.current = null;
     paused.current = null;
     setStage({ s: "home" });
+  }
+
+  /** "ลบข้อมูลของฉัน" (home settings, or a plan the clinic closed): withdraw consent and delete the plan's data here and on the server. */
+  async function deleteMyData() {
+    if (!confirm("ลบข้อมูลทั้งหมดของแผนนี้และหยุดใช้งาน?")) return;
+    setBusy(true);
+    setActionError(null);
+    const r = await api(`/api/p/${code}/delete`, { body: { secret } });
+    setBusy(false);
+    if (r.ok) {
+      await forgetPlan(code);
+      try {
+        localStorage.removeItem(lastDoneKey(code));
+        localStorage.removeItem(stopKey(code));
+      } catch {}
+      setStage({ s: "error", msg: "ลบข้อมูลของคุณแล้ว แผนนี้หยุดใช้งาน" });
+    } else {
+      setActionError(`ลบข้อมูลไม่สำเร็จ ${r.message_th ?? ""} ลองใหม่อีกครั้ง`);
+    }
   }
 
   if (stage.s === "loading") return <main className="flex flex-1 items-center justify-center p-6 text-xl text-muted">กำลังเปิดแผน…</main>;
@@ -272,11 +319,21 @@ export default function PatientPage() {
         <p className="card text-[22px] leading-[1.7]">{stage.msg}</p>
       </main>
     );
+  if (stage.s === "closed")
+    return (
+      <main className="mx-auto w-full max-w-xl space-y-5 p-6">
+        <p className="card text-[22px] leading-[1.7]">{CLOSED_TH}</p>
+        <DeleteMyData busy={busy} error={actionError} onDelete={deleteMyData} />
+      </main>
+    );
   if (!plan) return null;
 
   const total = plan.posture_ids.length;
-  const doneDays = doneToday ? [...(plan.done_days ?? []), todayLocal()] : (plan.done_days ?? []);
-  const week = { doneDays, today: todayLocal(), daysPerWeek: plan.days_per_week, stoppedToday: !!stopToday };
+  const today = todayLocal();
+  const doneToday = doneDay === today;
+  const stopToday = stopDay?.day === today ? stopDay.flag : null;
+  const doneDays = doneToday ? [...(plan.done_days ?? []), today] : (plan.done_days ?? []);
+  const week = { doneDays, today, daysPerWeek: plan.days_per_week, stoppedToday: !!stopToday };
   const inRun = stage.s !== "consent" && stage.s !== "home";
   const q = question && question.n > 1 ? `ข้อ ${question.i + 1} จาก ${question.n}` : "";
   const runStep = (() => {
@@ -376,7 +433,9 @@ export default function PatientPage() {
                 const r = await api<{ consent_at: string }>(`/api/p/${code}/consent`, { body: { secret } });
                 setBusy(false);
                 if (r.ok) {
-                  setPlan({ ...plan, consent_at: r.data.consent_at });
+                  const next = { ...plan, consent_at: r.data.consent_at };
+                  setPlan(next);
+                  void savePlan(code, next); // a later offline / fallback load must not ask again
                   setStage({ s: "home" });
                 } else {
                   setActionError(`บันทึกความยินยอมไม่สำเร็จ ${r.message_th ?? ""} ลองใหม่อีกครั้ง`);
@@ -501,31 +560,7 @@ export default function PatientPage() {
                 <ChevronDown aria-hidden className="ml-auto h-6 w-6 transition-transform group-open:rotate-180" strokeWidth={2} />
               </summary>
               <div className="space-y-3 px-5 pb-5">
-                <button
-                  className="btn-ghost w-full border-emergency text-lg text-emergency active:bg-emergency-tint"
-                  disabled={busy}
-                  onClick={async () => {
-                    if (!confirm("ลบข้อมูลทั้งหมดของแผนนี้และหยุดใช้งาน?")) return;
-                    setBusy(true);
-                    setActionError(null);
-                    const r = await api(`/api/p/${code}/delete`, { body: { secret } });
-                    setBusy(false);
-                    if (r.ok) {
-                      await forgetPlan(code);
-                      try {
-                        localStorage.removeItem(lastDoneKey(code));
-                        localStorage.removeItem(stopKey(code));
-                      } catch {}
-                      setStage({ s: "error", msg: "ลบข้อมูลของคุณแล้ว แผนนี้หยุดใช้งาน" });
-                    } else {
-                      setActionError(`ลบข้อมูลไม่สำเร็จ ${r.message_th ?? ""} ลองใหม่อีกครั้ง`);
-                    }
-                  }}
-                >
-                  <Trash2 aria-hidden className="h-6 w-6" strokeWidth={2} />
-                  ลบข้อมูลของฉัน
-                </button>
-                {actionError && <p className="font-semibold text-emergency">{actionError}</p>}
+                <DeleteMyData busy={busy} error={actionError} onDelete={deleteMyData} />
               </div>
             </details>
           </>
@@ -595,9 +630,15 @@ export default function PatientPage() {
 
         {stage.s === "dizzy_check" && (
           <section className="space-y-5">
+            {/* Spoken: the patient may be standing away from the phone, and this decides between 1669 and a pause. */}
+            <SpeakOnce key={`dz:${stage.i}`} text={DIZZY_CHECK_TH} />
             <p className="text-[24px] font-semibold leading-[1.6]">
               อาการเวียนหัว เกิดขึ้นทันทีและรุนแรง หรือมีหน้าเบี้ยว แขนขาอ่อนแรง พูดไม่ชัด ร่วมด้วยไหม
             </p>
+            <button className="btn-ghost w-full border-indigo/70 text-xl text-indigo active:bg-indigo-tint" onClick={() => speak(DIZZY_CHECK_TH)}>
+              <Volume2 aria-hidden className="h-7 w-7" strokeWidth={2} />
+              ฟังคำถาม
+            </button>
             <button className="flex min-h-20 w-full items-center justify-center gap-3 rounded-full bg-emergency shadow-btn text-[25px] font-semibold text-white active:brightness-90" onClick={() => raise("RF01", stage.i)}>
               <Check aria-hidden className="h-8 w-8" strokeWidth={2.5} />
               ใช่
@@ -655,6 +696,19 @@ const CONSENT_TH = [
   "แอปนี้ไม่ได้ตรวจโรคหรือรักษา ท่าทั้งหมดมาจากแผ่นของกรมฯ ตามที่แพทย์แผนไทยสั่ง",
   "ผู้ป่วยอายุต่ำกว่า 18 ปี ให้ผู้ปกครองเป็นผู้กดยินยอม",
 ];
+
+/** "ลบข้อมูลของฉัน" and its error line: in the home settings and on a closed plan. */
+function DeleteMyData({ busy, error, onDelete }: { busy: boolean; error: string | null; onDelete: () => void }) {
+  return (
+    <>
+      <button className="btn-ghost w-full border-emergency text-lg text-emergency active:bg-emergency-tint" disabled={busy} onClick={onDelete}>
+        <Trash2 aria-hidden className="h-6 w-6" strokeWidth={2} />
+        ลบข้อมูลของฉัน
+      </button>
+      {error && <p className="font-semibold text-emergency">{error}</p>}
+    </>
+  );
+}
 
 /** The outcome: shown at once; the save line updates when the background submit settles. */
 function Result({

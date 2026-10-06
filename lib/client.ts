@@ -26,19 +26,26 @@ export async function api<T = unknown>(path: string, init: { method?: string; bo
 
 const LOGGED_OUT = "hp_clinic_logged_out";
 
-/** Enter the open demo clinic (no PIN) unless this tab chose to log out. True when a clinic session now exists. */
+/** Enter the open demo clinic (no PIN) unless this browser chose to log out. True when a clinic session now exists. */
 export async function enterOpenClinic(force = false): Promise<boolean> {
   try {
-    if (!force && sessionStorage.getItem(LOGGED_OUT)) return false;
-    sessionStorage.removeItem(LOGGED_OUT);
+    if (!force && localStorage.getItem(LOGGED_OUT)) return false;
+    localStorage.removeItem(LOGGED_OUT);
   } catch {}
   return (await api("/api/clinic/demo", { body: {} })).ok;
 }
 
-/** Remember for this tab that the user logged out, so the PIN form shows instead of the open clinic. */
+/** Remember that the user logged out, so every tab shows the PIN form instead of the open clinic (the cookie is per browser too). */
 export function markClinicLoggedOut() {
   try {
-    sessionStorage.setItem(LOGGED_OUT, "1");
+    localStorage.setItem(LOGGED_OUT, "1");
+  } catch {}
+}
+
+/** Forget the logout after a PIN login, so a later expired session can fall back to the open clinic again. */
+export function clearClinicLoggedOut() {
+  try {
+    localStorage.removeItem(LOGGED_OUT);
   } catch {}
 }
 

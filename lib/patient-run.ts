@@ -58,6 +58,11 @@ export function stopsNow(run: RunData, settings: ClinicRuleSettings): boolean {
   return w !== null && stopsSession(w.level);
 }
 
+/** Has the patient reported a symptom this run (a "yes" answer or a button during a posture)? Leaving then still sends it. */
+export function reportedSymptom(run: RunData): boolean {
+  return run.postureFlags.length > 0 || Object.values(run.answers).some(Boolean);
+}
+
 export type RaiseOutcome =
   | { kind: "stop"; run: RunData }
   | { kind: "pause"; run: RunData; ruleId: string }

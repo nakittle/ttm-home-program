@@ -2,7 +2,7 @@ import { activeGroups, getPosture, posturesForGroups } from "@/lib/content";
 import { addDays, daysBetween } from "@/lib/aggregate";
 import { hashPin } from "@/lib/auth";
 import { hashSecret, newSecret } from "@/lib/plan";
-import type { NewFlag, Store } from "@/lib/db/types";
+import type { ClinicRow, NewFlag, Store } from "@/lib/db/types";
 import type { PostureResult } from "@/lib/pose/session";
 
 /** Small deterministic PRNG so the demo data is the same every time. */
@@ -24,9 +24,33 @@ export const DEMO_CLINICS = [
 ];
 
 const LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const PLANS_PER_CLINIC = 20;
 
-/** Fill the store with 3 demo clinics, ~60 plans over the last 8 weeks. Returns counts. */
-export async function seedDemo(store: Store, today: string, pin: string, seed = 42) {
+/** Code of seeded plan i of demo clinic ci. They all start with A, D or G, so never TCX-86 or another protected plan. */
+const seedPlanCode = (ci: number, i: number) =>
+  `${LETTERS[ci * 3]}${LETTERS[(i * 7) % 24]}${LETTERS[(i * 11 + ci) % 24]}-${2 + (i % 8)}${2 + ((i * 3 + ci) % 8)}`;
+
+export const SEED_PLAN_CODES = DEMO_CLINICS.flatMap((_, ci) => Array.from({ length: PLANS_PER_CLINIC }, (_, i) => seedPlanCode(ci, i)));
+
+/** Demo plans that people reach from printed QR codes (the Concept Paper): never closed or deleted by the demo tools. */
+export const protectedPlanCodes = () => (process.env.PROTECTED_PLAN_CODES ?? "TCX-86").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+
+export class NoDemoPinError extends Error {}
+
+/** The demo clinics; a missing one is created with the PIN. An existing clinic keeps its PIN and settings. */
+async function demoClinics(store: Store, pin?: string) {
+  const found = await Promise.all(DEMO_CLINICS.map((c) => store.getClinicByCode(c.code)));
+  if (found.some((c) => !c) && !pin) throw new NoDemoPinError("DEMO_CLINIC_PIN is not set; it is needed to create the missing demo clinics");
+  const out: ClinicRow[] = [];
+  for (const [ci, c] of DEMO_CLINICS.entries()) {
+    out.push(found[ci] ?? (await store.insertClinic({ ...c, pin_hash: hashPin(pin!), is_demo: true, settings: { disabled: [], thresholds: {} } })));
+  }
+  return out;
+}
+
+/** Fill the 3 demo clinics (created when missing) with ~60 plans over the last 8 weeks. Returns counts. */
+export async function seedDemo(store: Store, today: string, pin?: string, seed = 42) {
+  const clinics = await demoClinics(store, pin);
   const rnd = mulberry32(seed);
   const pick = <T,>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)];
   const groups = activeGroups().map((g) => g.id);
@@ -34,16 +58,15 @@ export async function seedDemo(store: Store, today: string, pin: string, seed = 
   let sessionsMade = 0;
   let flagsMade = 0;
 
-  for (const [ci, c] of DEMO_CLINICS.entries()) {
-    const clinic = await store.insertClinic({ ...c, pin_hash: hashPin(pin), is_demo: true, settings: { disabled: [], thresholds: {} } });
-    for (let i = 0; i < 20; i++) {
+  for (const [ci, clinic] of clinics.entries()) {
+    for (let i = 0; i < PLANS_PER_CLINIC; i++) {
       const g1 = pick(groups);
       const groupIds = rnd() < 0.3 ? [...new Set([g1, pick(groups)])] : [g1];
       const start = addDays(today, -Math.floor(rnd() * 56));
       const length = 14 + Math.floor(rnd() * 15);
       const visit = addDays(start, length);
       const days = pick([3, 5, 7] as const);
-      const code = `${LETTERS[ci * 3]}${LETTERS[(i * 7) % 24]}${LETTERS[(i * 11 + ci) % 24]}-${2 + (i % 8)}${2 + ((i * 3 + ci) % 8)}`;
+      const code = seedPlanCode(ci, i);
       const ended = visit < today;
       const plan = await store.insertPlan({
         code,
@@ -105,4 +128,16 @@ export async function seedDemo(store: Store, today: string, pin: string, seed = 
     }
   }
   return { clinics: DEMO_CLINICS.length, plans: plansMade, sessions: sessionsMade, flags: flagsMade };
+}
+
+/**
+ * Before judging: re-create only the seeded plans with today's dates. Demo clinics (PIN, settings),
+ * protected plans and every plan people made stay. The PIN is needed only when a demo clinic is missing.
+ */
+export async function refreshDemo(store: Store, today: string, pin?: string) {
+  const prot = protectedPlanCodes();
+  if (SEED_PLAN_CODES.some((c) => prot.includes(c))) throw new Error("a seed plan code is in PROTECTED_PLAN_CODES");
+  await demoClinics(store, pin); // fails before deleting anything
+  const removed = await store.deletePlansByCode(SEED_PLAN_CODES);
+  return { removed, ...(await seedDemo(store, today, pin)) };
 }

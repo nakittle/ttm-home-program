@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { CalendarDays, ChartColumn, Table2, TrendingDown, TrendingUp } from "lucide-react";
 import type { DtamSummary } from "@/lib/aggregate";
 import { pct } from "@/lib/client";
-import { CardHead, Segmented, pointsDelta, shortDate, weekRange } from "./ui";
+import { CardHead, Segmented, pointsDelta, shortDate, totalsLabel, weekRange } from "./ui";
 
 type Week = DtamSummary["weekly_adherence"][number];
 const H = 220;
@@ -82,7 +82,8 @@ function Bars({ weeks, prevOf, average }: { weeks: Week[]; prevOf: (i: number) =
                       setTip(i);
                     }}
                     onBlur={() => setTip(null)}
-                    onClick={() => setTip(on ? null : i)}
+                    // Open only: on a tap, enter and focus have already opened it, so a toggle would shut it at once.
+                    onClick={() => setTip(i)}
                     onKeyDown={(e) => onKey(e, i)}
                   >
                     <span
@@ -134,7 +135,7 @@ function Bars({ weeks, prevOf, average }: { weeks: Week[]; prevOf: (i: number) =
 type Range = "4" | "8";
 type View = "chart" | "table";
 
-export function WeeklyTrend({ weeks, average }: { weeks: Week[]; average: number | null }) {
+export function WeeklyTrend({ weeks, average, anyHidden = false }: { weeks: Week[]; average: number | null; anyHidden?: boolean }) {
   const [range, setRange] = useState<Range>("8");
   const [view, setView] = useState<View>("chart");
   const n = Number(range);
@@ -150,7 +151,7 @@ export function WeeklyTrend({ weeks, average }: { weeks: Week[]; average: number
 
   return (
     <section aria-labelledby="trend-h" className="card rise flex h-full flex-col gap-5 p-5 sm:p-6" style={{ ["--i" as string]: 5 }}>
-      <CardHead id="trend-h" icon={TrendingUp} title="อัตราทำตามแผนรายสัปดาห์" help="ทุกศูนย์รวมกัน · แตะหรือชี้ที่แท่งเพื่อดูตัวเลข" />
+      <CardHead id="trend-h" icon={TrendingUp} title="อัตราทำตามแผนรายสัปดาห์" help={`${totalsLabel(anyHidden)} · แตะหรือชี้ที่แท่งเพื่อดูตัวเลข`} />
       <div className="flex flex-wrap items-center gap-3">
         <Segmented<Range>
           label="ช่วงเวลา"

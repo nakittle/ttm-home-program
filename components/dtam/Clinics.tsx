@@ -12,7 +12,7 @@ import type { ClinicSummary, DtamSummary } from "@/lib/aggregate";
 import { MIN_CELL } from "@/lib/aggregate";
 import { pct } from "@/lib/client";
 import { GrowBar } from "@/components/patient/Progress";
-import { CardHead, Segmented } from "./ui";
+import { CardHead, Segmented, totalsLabel } from "./ui";
 
 export const HIDDEN_TH = "ข้อมูลน้อยเกินไป (ซ่อนเพื่อความเป็นส่วนตัว)";
 
@@ -174,7 +174,7 @@ export function ClinicRanking({
       {ref !== null && (
         <p className="flex items-center gap-2 text-base text-muted">
           <span aria-hidden className="h-5 w-[3px] rounded-full bg-clay-ink" />
-          ขีดส้ม = ทุกศูนย์รวมกัน {pct(ref)}
+          ขีดส้ม = {totalsLabel(hidden.length > 0)} {pct(ref)}
         </p>
       )}
     </section>
@@ -341,34 +341,32 @@ export function ClinicTable({
               </tr>
             ))}
           </tbody>
-          {/* With a hidden clinic, totals minus the shown rows would reveal its numbers, so the totals row goes. */}
-          {hidden.length === 0 && (
-            <tfoot>
-              <tr className="border-t-2 border-line">
-                <th
-                  scope="row"
-                  className="sticky left-0 z-[1] bg-surface px-3 py-3 font-semibold"
-                >
-                  ทุกศูนย์รวมกัน
-                </th>
-                <td className="px-3 py-3 text-right font-semibold tabular-nums">
-                  {data.totals.plans}
-                </td>
-                <td className="px-3 py-3 text-right font-semibold tabular-nums">
-                  {data.totals.active_patients}
-                </td>
-                <td className="px-3 py-3 text-right font-semibold tabular-nums">
-                  {pct(data.totals.adherence)}
-                </td>
-                <td className="px-3 py-3 text-right font-semibold tabular-nums">
-                  {pct(data.totals.completion_rate)}
-                </td>
-                <td className="px-3 py-3 text-right font-semibold tabular-nums">
-                  {pct(data.totals.camera_share)}
-                </td>
-              </tr>
-            </tfoot>
-          )}
+          {/* Totals leave hidden clinics out (lib/aggregate), so they can't be used to work one out. */}
+          <tfoot>
+            <tr className="border-t-2 border-line">
+              <th
+                scope="row"
+                className="sticky left-0 z-[1] bg-surface px-3 py-3 font-semibold"
+              >
+                {totalsLabel(hidden.length > 0)}
+              </th>
+              <td className="px-3 py-3 text-right font-semibold tabular-nums">
+                {data.totals.plans}
+              </td>
+              <td className="px-3 py-3 text-right font-semibold tabular-nums">
+                {data.totals.active_patients}
+              </td>
+              <td className="px-3 py-3 text-right font-semibold tabular-nums">
+                {pct(data.totals.adherence)}
+              </td>
+              <td className="px-3 py-3 text-right font-semibold tabular-nums">
+                {pct(data.totals.completion_rate)}
+              </td>
+              <td className="px-3 py-3 text-right font-semibold tabular-nums">
+                {pct(data.totals.camera_share)}
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
       <p className="text-base text-muted sm:hidden">

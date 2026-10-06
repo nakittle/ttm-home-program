@@ -6,13 +6,15 @@ import {
   classifySubmit,
   emptyRun,
   isRetryableStatus,
+  reportedSymptom,
   sessionBody,
   skippedResult,
   stopRun,
   stopsNow,
   visibleFlags,
 } from "@/lib/patient-run";
-import { DEFAULT_SETTINGS, evaluateRedFlags, type FiredFlag } from "@/lib/redflags";
+import { rulesAskedAt } from "@/lib/content";
+import { DEFAULT_SETTINGS, evaluateRedFlags, stopsSession, type FiredFlag } from "@/lib/redflags";
 
 // sitting, standing, sitting, standing, standing, sitting
 const PLAN = ["kae-kiat", "kae-salak-lai", "kae-khao-khat", "kae-kho-khlet-kae-lai-khat", "kae-khao-kae-kha", "kae-klon"];
@@ -32,6 +34,17 @@ describe("patient run: stopping", () => {
     expect(stopsNow(run, DEFAULT_SETTINGS)).toBe(true);
     expect(stopRun(run, PLAN).results).toHaveLength(PLAN.length);
   });
+
+  // The questions end at the first stop-level "yes", so the later answers are missing: the run still stops and sends that flag.
+  for (const r of [...rulesAskedAt("pre"), ...rulesAskedAt("post")].filter((x) => stopsSession(x.level))) {
+    it(`a "yes" to ${r.id} alone (questions ended early) stops the run and sends ${r.id}`, () => {
+      const run = { ...emptyRun(), answers: { [r.id]: true } };
+      expect(stopsNow(run, DEFAULT_SETTINGS)).toBe(true);
+      const body = sessionBody(stopRun(run, PLAN), "client-123456", "2026-10-07");
+      expect(body.answers).toEqual({ [r.id]: true });
+      expect(evaluateRedFlags({ answers: body.answers }).map((f) => f.rule_id)).toContain(r.id);
+    });
+  }
 
   it("a stop mid-session keeps finished postures and skips the rest", () => {
     const run = { ...emptyRun(), results: [done(PLAN[0])] };
@@ -103,6 +116,23 @@ describe("patient run: pause-level flags", () => {
 
   it("without RF11 standing postures are presented normally", () => {
     expect(advance(emptyRun(), PLAN, 0, done(PLAN[0])).next).toBe(1);
+  });
+});
+
+describe("patient run: leaving early", () => {
+  it("nothing reported: leaving sends nothing", () => {
+    expect(reportedSymptom(emptyRun())).toBe(false);
+    expect(reportedSymptom({ ...emptyRun(), answers: { RF01: false, RF12: false }, painBefore: 3 })).toBe(false);
+  });
+
+  it("a button during a posture or a 'yes' answer is reported, so leaving sends it", () => {
+    const paused = applyRaise(emptyRun(), "RF11", 1, PLAN, DEFAULT_SETTINGS);
+    expect(paused.kind).toBe("pause");
+    expect(reportedSymptom(paused.run)).toBe(true);
+    expect(reportedSymptom({ ...emptyRun(), answers: { RF12: true } })).toBe(true);
+    const body = sessionBody(stopRun(paused.run, PLAN), "client-123456", "2026-10-07");
+    expect(body.posture_flags).toEqual([{ rule_id: "RF11", posture_id: PLAN[1] }]);
+    expect(body.results).toHaveLength(PLAN.length);
   });
 });
 

@@ -52,10 +52,12 @@ const groupName = (id: string) => {
  * Right: a group × level grid, shade = count (one hue per level, darker = more). Picking a group in the chips
  * or on a grid row drives both.
  */
-export function RedFlags({ flags }: { flags: DtamSummary["flags_by_group"] }) {
+export function RedFlags({ flags, levels }: { flags: DtamSummary["flags_by_group"]; levels: DtamSummary["flags_by_level"] }) {
   const [group, setGroup] = useState<string>("all");
   const groups = [...new Set(flags.map((f) => f.group_id))].sort((a, b) => groupName(a).localeCompare(groupName(b), "th"));
-  const count = (g: string | "all", l: RedFlagLevel) => flags.filter((f) => (g === "all" || f.group_id === g) && f.level === l).reduce((a, f) => a + f.count, 0);
+  // "ทุกกลุ่ม" uses the per-level counts: summing groups would count a flag once for each group of its plan.
+  const count = (g: string | "all", l: RedFlagLevel) =>
+    g === "all" ? (levels.find((x) => x.level === l)?.count ?? 0) : flags.filter((f) => f.group_id === g && f.level === l).reduce((a, f) => a + f.count, 0);
 
   const byLevel = LEVELS.map((l) => ({ level: l, n: count(group, l) }));
   const total = byLevel.reduce((a, b) => a + b.n, 0);

@@ -40,6 +40,17 @@ describe("adherence", () => {
   it("is null before the plan starts", () => {
     expect(adherence(plan(), [], "2026-09-01", "2026-09-10")).toBeNull();
   });
+  it("stops expecting sessions on the Bangkok day the plan was closed", () => {
+    // 28-day plan finished early: closed 1:00 on 10 Oct Bangkok time, every day done until then.
+    const p = plan({ next_visit_date: "2026-10-28", status: "completed", consent_at: "2026-10-01T03:00:00Z", closed_at: "2026-10-09T18:00:00Z" });
+    const ss = Array.from({ length: 10 }, (_, i) => session(addDays("2026-10-01", i)));
+    expect(adherence(p, ss, "2026-10-01", "2026-10-31")).toBe(1);
+    // 10 Oct (Bangkok) is still a plan day, although closed_at is 9 Oct in UTC.
+    expect(adherence(p, ss.slice(0, 9), "2026-10-01", "2026-10-31")).toBeCloseTo(0.9);
+    expect(adherence(p, ss, "2026-10-12", "2026-10-18")).toBeNull();
+    // An active plan is never cut short.
+    expect(adherence({ ...p, status: "active" }, ss, "2026-10-01", "2026-10-28")).toBeCloseTo(10 / 28);
+  });
 });
 
 describe("clinic dashboard", () => {
@@ -72,11 +83,11 @@ describe("clinic dashboard", () => {
 
 describe("pin hashing", () => {
   it("verifies the right pin only", () => {
-    const h = hashPin("246810");
+    const h = hashPin("135790");
     expect(h.startsWith("scrypt$")).toBe(true);
-    expect(verifyPin("246810", h)).toBe(true);
+    expect(verifyPin("135790", h)).toBe(true);
     expect(verifyPin("000000", h)).toBe(false);
-    expect(verifyPin("246810", "garbage")).toBe(false);
+    expect(verifyPin("135790", "garbage")).toBe(false);
   });
   it("rejects malformed stored hashes instead of comparing empty buffers", () => {
     expect(verifyPin("123456", "scrypt$aa$zz")).toBe(false);
@@ -91,7 +102,7 @@ describe("demo seed + DTAM summary", () => {
   const today = "2026-10-08";
   let counts: Awaited<ReturnType<typeof seedDemo>>;
   beforeAll(async () => {
-    counts = await seedDemo(store, today, "246810");
+    counts = await seedDemo(store, today, "135790");
   });
 
   it("creates 3 demo clinics and 60 plans, deterministically", async () => {
@@ -99,7 +110,7 @@ describe("demo seed + DTAM summary", () => {
     expect(counts.plans).toBe(60);
     expect(counts.sessions).toBeGreaterThan(200);
     const again = new MemoryStore();
-    expect(await seedDemo(again, today, "246810")).toEqual(counts);
+    expect(await seedDemo(again, today, "135790")).toEqual(counts);
   });
 
   it("only puts RF11 (unsteady) on standing postures of the plan", () => {
@@ -128,5 +139,54 @@ describe("demo seed + DTAM summary", () => {
     const s = dtamSummary(store.clinics.slice(0, 1), one, store.sessions, [], today);
     expect(s.clinics[0].hidden).toBe(true);
     expect(s.clinics[0].plans).toBeNull();
+  });
+
+  it("keeps a hidden clinic out of the totals, so subtracting the shown rows reveals nothing", () => {
+    const before = dtamSummary(store.clinics, store.plans, store.sessions, store.flags, today);
+    const small = { ...store.clinics[0], id: "small", code: "SMALL", name: "ศูนย์เล็ก", is_demo: false };
+    const sp = [1, 2, 3].map((n) =>
+      plan({ id: `small-${n}`, clinic_id: "small", start_date: addDays(today, -20), next_visit_date: addDays(today, 7), consent_at: "2026-09-18T03:00:00Z" }),
+    );
+    const ss = sp.map((p) => session(addDays(today, -1), "camera", { id: `s-${p.id}`, plan_id: p.id, client_id: `s-${p.id}` }));
+    const s = dtamSummary([...store.clinics, small], [...store.plans, ...sp], [...store.sessions, ...ss], store.flags, today);
+    expect(s.clinics.find((c) => c.clinic_code === "SMALL")?.hidden).toBe(true);
+    expect(s.totals).toEqual(before.totals);
+    expect(s.weekly_adherence).toEqual(before.weekly_adherence);
+    const shown = s.clinics.filter((c) => !c.hidden);
+    expect(s.totals.plans).toBe(shown.reduce((a, c) => a + (c.plans ?? 0), 0));
+    expect(s.totals.active_patients).toBe(shown.reduce((a, c) => a + (c.active_patients ?? 0), 0));
+  });
+
+  it("counts each red flag once per level, even when its plan has several groups", () => {
+    const p = plan({ group_ids: ["knee", "shoulder"] });
+    const flag = { id: "f1", plan_id: "p1", session_id: null, rule_id: "RF01", level: "call_1669" as const, posture_id: null, created_at: "x", acknowledged_at: null };
+    const s = dtamSummary([], [p], [], [flag], today);
+    expect(s.flags_by_group).toHaveLength(2);
+    expect(s.flags_by_level).toEqual([{ level: "call_1669", count: 1 }]);
+    const seeded = dtamSummary(store.clinics, store.plans, store.sessions, store.flags, today);
+    expect(seeded.flags_by_level.reduce((a, f) => a + f.count, 0)).toBe(store.flags.length);
+  });
+});
+
+describe("DTAM adherence and withdrawn plans", () => {
+  const clinic = { id: "c1", code: "C1", name: "ศูนย์ทดสอบ", pin_hash: "x", phone: null, is_demo: false, settings: { disabled: [], thresholds: {} }, created_at: "x" };
+  const today = "2026-10-07";
+  const days = Array.from({ length: 7 }, (_, i) => addDays("2026-10-01", i));
+  const keen = [1, 2, 3, 4].map((n) => plan({ id: `k${n}`, consent_at: "2026-10-01T03:00:00Z" }));
+  const keenSessions = keen.flatMap((p) => days.map((d) => session(d, "camera", { id: `${p.id}-${d}`, plan_id: p.id, client_id: `${p.id}-${d}` })));
+
+  it("leaves a plan whose patient deleted their data out of the adherence means", () => {
+    const gone = plan({ id: "gone", status: "stopped", consent_at: null, closed_at: "2026-10-03T05:00:00Z" });
+    const s = dtamSummary([clinic], [...keen, gone], keenSessions, [], today);
+    expect(s.totals.plans).toBe(5);
+    expect(s.totals.adherence).toBe(1);
+    expect(s.weekly_adherence.at(-1)?.adherence).toBe(1);
+    expect(s.clinics[0].adherence).toBe(1);
+  });
+
+  it("still counts an active plan whose data was cleared", () => {
+    const cleared = plan({ id: "cleared", consent_at: null });
+    const s = dtamSummary([clinic], [...keen, cleared], keenSessions, [], today);
+    expect(s.totals.adherence).toBeCloseTo(0.8);
   });
 });

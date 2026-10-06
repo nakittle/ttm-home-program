@@ -9,12 +9,11 @@ export const POST = withErrors(async (req: Request) => {
   if (body instanceof Response) return body;
   const code = body.code.trim().toUpperCase();
   if (isLocked(code)) return fail(429, "locked", "ใส่ PIN ผิดหลายครั้ง โปรดรอ 5 นาที");
+  // Count the attempt before any await, so parallel requests cannot all slip past the lock; a right PIN clears it.
+  recordFailure(code);
 
   const clinic = await getStore().getClinicByCode(code);
-  if (!clinic || !verifyPin(body.pin, clinic.pin_hash)) {
-    recordFailure(code);
-    return fail(401, "bad_login", "รหัสคลินิกหรือ PIN ไม่ถูกต้อง");
-  }
+  if (!clinic || !verifyPin(body.pin, clinic.pin_hash)) return fail(401, "bad_login", "รหัสคลินิกหรือ PIN ไม่ถูกต้อง");
   clearFailures(code);
   const token = await signSession({ role: "clinic", clinicId: clinic.id });
   return json({ ok: true, clinic: { code: clinic.code, name: clinic.name } }, 200, { "set-cookie": setCookie(CLINIC_COOKIE, token) });

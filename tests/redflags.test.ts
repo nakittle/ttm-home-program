@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { redflags } from "@/lib/content";
+import { redflags, rulesAskedAt } from "@/lib/content";
 import { evaluateRedFlags, stopsSession, worst } from "@/lib/redflags";
 
 describe("red flags", () => {
@@ -54,5 +54,15 @@ describe("red flags", () => {
     expect(stopsSession("call_1669")).toBe(true);
     expect(stopsSession("stop_and_contact_clinic")).toBe(true);
     expect(stopsSession("pause_posture")).toBe(false);
+  });
+
+  // The questions end at the first "yes" to a stop rule, so no 1669 question may come after a stop_and_contact_clinic one.
+  it("asks every 1669 question before the stop-and-contact-clinic questions", () => {
+    const places = [rulesAskedAt("pre"), rulesAskedAt("post"), ...redflags.rules.flatMap((r) => r.postures ?? []).map((id) => rulesAskedAt("before_posture", id))];
+    for (const rules of places) {
+      const levels = rules.map((r) => r.level);
+      const firstStop = levels.indexOf("stop_and_contact_clinic");
+      if (firstStop >= 0) expect(levels.slice(firstStop)).not.toContain("call_1669");
+    }
   });
 });

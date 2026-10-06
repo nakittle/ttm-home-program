@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { Camera, Check, CircleCheck, CloudUpload, Pause, Phone, Play, Square, Volume2 } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 
@@ -25,14 +25,23 @@ const anim = (name: string, ms: number, delay = 0, extra = "both"): CSSPropertie
   animation: `${name} ${ms}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms ${extra}`,
 });
 
+const REDUCE = "(prefers-reduced-motion: reduce)";
+const onReduceChange = (cb: () => void) => {
+  const m = window.matchMedia(REDUCE);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+};
+
 export function PhoneDemo() {
   const [i, setI] = useState(0);
-  const [playing, setPlaying] = useState(true);
+  // Reduced motion starts paused (the server can't know, so it renders playing); once the user taps play/pause, that wins.
+  const reduced = useSyncExternalStore(onReduceChange, () => window.matchMedia(REDUCE).matches, () => false);
+  const [userPlaying, setUserPlaying] = useState<boolean | null>(null);
+  const playing = userPlaying ?? !reduced;
   const [visible, setVisible] = useState(true);
   const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setPlaying(false);
     const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting && !document.hidden));
     if (box.current) io.observe(box.current);
     const onVis = () => setVisible(!document.hidden);
@@ -74,7 +83,7 @@ export function PhoneDemo() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setPlaying((p) => !p)}
+            onClick={() => setUserPlaying(!playing)}
             aria-label={playing ? "หยุดภาพเคลื่อนไหว" : "เล่นภาพเคลื่อนไหว"}
             className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-sage bg-surface text-brand shadow-soft transition active:bg-brand-tint"
           >

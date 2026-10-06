@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, Database, EyeOff, Landmark, RefreshCw, RotateCcw, ShieldCheck } from "lucide-react";
+import { CalendarDays, CircleAlert, Database, EyeOff, Landmark, RefreshCw, RotateCcw, ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import type { DtamSummary } from "@/lib/aggregate";
 import { MIN_CELL } from "@/lib/aggregate";
@@ -99,6 +99,16 @@ export default function DtamPage() {
           </>
         ) : (
           <div className={`transition-opacity duration-300 ${busy ? "opacity-60" : ""}`} aria-busy={busy}>
+            {/* A failed reload keeps the old numbers on screen, so say they are not fresh. */}
+            {loadErr && (
+              <p role="alert" className="mb-5 flex items-start gap-2 rounded-2xl border border-gold bg-gold-tint px-4 py-3 text-base">
+                <CircleAlert aria-hidden className="mt-1 h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>
+                  <span className="font-semibold">{loadErr}</span>
+                  {loadedAt && <> · ตัวเลขด้านล่างเป็นข้อมูลที่โหลดเมื่อ {timeTh(loadedAt)}</>}
+                </span>
+              </p>
+            )}
             <section className="rise flex flex-col gap-3 pb-6">
               <p className="inline-flex items-center gap-2 text-base font-semibold text-brand-2">
                 <Landmark aria-hidden className="h-5 w-5" strokeWidth={2} />
@@ -128,13 +138,13 @@ export default function DtamPage() {
 
             <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12">
               <div className="lg:col-span-7">
-                <WeeklyTrend weeks={data.weekly_adherence} average={data.totals.adherence} />
+                <WeeklyTrend weeks={data.weekly_adherence} average={data.totals.adherence} anyHidden={hiddenCount > 0} />
               </div>
               <div className="lg:col-span-5">
                 <ClinicRanking data={data} focus={focus} onFocus={setFocus} />
               </div>
               <div className="lg:col-span-12">
-                <RedFlags flags={data.flags_by_group} />
+                <RedFlags flags={data.flags_by_group} levels={data.flags_by_level} />
               </div>
               <div className="lg:col-span-12">
                 <ClinicTable data={data} focus={focus} onFocus={setFocus} />

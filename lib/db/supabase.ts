@@ -1,10 +1,37 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { DuplicateCodeError, type ClinicRow, type FlagRow, type NewClinic, type NewFlag, type NewPlan, type NewSession, type PlanRow, type SessionRow, type Store } from "./types";
 
-function check<T>(res: { data: T; error: { code?: string; message: string } | null }): T {
+type DbError = { code?: string; message: string };
+
+function check<T>(res: { data: T; error: DbError | null }): T {
   if (res.error) throw new Error(`database: ${res.error.message}`);
   return res.data;
 }
+
+export const PAGE = 1000; // Supabase returns at most this many rows per request (API "max rows" default)
+const IN_CHUNK = 100; // ids per .in() filter, so the request URL stays short
+
+/**
+ * Every row, not only the first PAGE. `page(afterId)` returns up to PAGE rows with id > afterId, in id order.
+ * Paging by id (not offset) means a row written meanwhile is never counted twice or skipped.
+ */
+export async function allRows<T extends { id: string }>(page: (afterId: string | null) => PromiseLike<{ data: unknown[] | null; error: DbError | null }>): Promise<T[]> {
+  const out: T[] = [];
+  for (let after: string | null = null; ; ) {
+    const rows = (check(await page(after)) ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < PAGE) return out;
+    after = rows[rows.length - 1].id;
+  }
+}
+
+export function chunks<T>(xs: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < xs.length; i += size) out.push(xs.slice(i, i + size));
+  return out;
+}
+
+type Query = ReturnType<ReturnType<SupabaseClient["from"]>["select"]>;
 
 /** Postgres dates come back as "YYYY-MM-DD"; keep them as strings. */
 export class SupabaseStore implements Store {
@@ -43,9 +70,8 @@ export class SupabaseStore implements Store {
     check(await this.db.from("plans").update(patch).eq("id", id));
   }
   async listPlans(filter: { clinicId?: string } = {}) {
-    let q = this.db.from("plans").select("*");
-    if (filter.clinicId) q = q.eq("clinic_id", filter.clinicId);
-    return check(await q) as PlanRow[];
+    const clinicId = filter.clinicId;
+    return allRows<PlanRow>((after) => this.page("plans", after, (q) => (clinicId ? q.eq("clinic_id", clinicId) : q)));
   }
 
   async insertSession(s: NewSession) {
@@ -61,9 +87,7 @@ export class SupabaseStore implements Store {
     return { row: check(res) as SessionRow, created: true };
   }
   async listSessions(filter: { planIds?: string[] } = {}) {
-    let q = this.db.from("sessions").select("*");
-    if (filter.planIds) q = q.in("plan_id", filter.planIds.length ? filter.planIds : ["00000000-0000-0000-0000-000000000000"]);
-    return check(await q) as SessionRow[];
+    return this.byPlan<SessionRow>("sessions", filter.planIds);
   }
 
   async insertFlags(f: NewFlag[]) {
@@ -71,9 +95,7 @@ export class SupabaseStore implements Store {
     return check(await this.db.from("flags").insert(f).select("*")) as FlagRow[];
   }
   async listFlags(filter: { planIds?: string[] } = {}) {
-    let q = this.db.from("flags").select("*");
-    if (filter.planIds) q = q.in("plan_id", filter.planIds.length ? filter.planIds : ["00000000-0000-0000-0000-000000000000"]);
-    return check(await q) as FlagRow[];
+    return this.byPlan<FlagRow>("flags", filter.planIds);
   }
   async acknowledgeFlag(id: string, clinicId: string, at: string) {
     const flag = check(await this.db.from("flags").select("id, plan_id").eq("id", id).maybeSingle()) as { plan_id: string } | null;
@@ -89,11 +111,35 @@ export class SupabaseStore implements Store {
     check(await this.db.from("sessions").delete().eq("plan_id", planId));
   }
   async purgeClosedBefore(isoDate: string) {
-    const old = check(await this.db.from("plans").select("id").lt("closed_at", isoDate)) as { id: string }[];
-    if (old.length) check(await this.db.from("plans").delete().in("id", old.map((o) => o.id)));
+    const old = await allRows<{ id: string }>((after) => this.page("plans", after, (q) => q.lt("closed_at", isoDate), "id"));
+    for (const ids of chunks(old.map((o) => o.id), IN_CHUNK)) check(await this.db.from("plans").delete().in("id", ids));
     return old.length;
+  }
+  async deletePlansByCode(codes: string[]) {
+    let n = 0;
+    for (const part of chunks(codes, IN_CHUNK)) {
+      n += (check(await this.db.from("plans").delete().in("code", part).select("id")) as { id: string }[]).length; // cascades to sessions, flags
+    }
+    return n;
   }
   async resetAll() {
     check(await this.db.from("clinics").delete().neq("code", "")); // cascades to plans, sessions, flags
+  }
+
+  /** One page of a table in id order, for allRows; `where` adds the filters. */
+  private page(table: string, after: string | null, where: (q: Query) => Query = (q) => q, columns = "*") {
+    let q = where(this.db.from(table).select(columns));
+    if (after) q = q.gt("id", after);
+    return q.order("id").limit(PAGE);
+  }
+
+  /** Sessions or flags of the given plans (all when no list): the ids go in chunks of IN_CHUNK per request. */
+  private async byPlan<T extends { id: string }>(table: "sessions" | "flags", planIds?: string[]): Promise<T[]> {
+    if (!planIds) return allRows<T>((after) => this.page(table, after));
+    const out: T[] = [];
+    for (const ids of chunks([...new Set(planIds)], IN_CHUNK)) {
+      out.push(...(await allRows<T>((after) => this.page(table, after, (q) => q.in("plan_id", ids)))));
+    }
+    return out;
   }
 }

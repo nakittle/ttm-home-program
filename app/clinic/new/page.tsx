@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Ban, Check, CircleAlert, ExternalLink, QrCode } from "lucide-react";
 import { addDaysLocal, api, todayLocal, enterOpenClinic } from "@/lib/client";
 import { activeGroups, getPosture, groupsFile, posturesForGroups } from "@/lib/content";
@@ -32,6 +32,7 @@ export default function NewPlanPage() {
   const [visit, setVisit] = useState(addDaysLocal(todayLocal(), 14));
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false);
 
   const postureIds = posturesForGroups(groups).filter((id) => !removed.includes(id));
 
@@ -174,6 +175,9 @@ export default function NewPlanPage() {
             className="btn min-h-14 px-7 text-lg"
             disabled={busy || postureIds.length === 0}
             onClick={async () => {
+              // A second tap before the re-render would otherwise create a duplicate plan.
+              if (sending.current) return;
+              sending.current = true;
               setBusy(true);
               setErr(null);
               const send = () =>
@@ -182,9 +186,14 @@ export default function NewPlanPage() {
                 });
               let r = await send();
               if (r.status === 401 && (await enterOpenClinic())) r = await send();
+              if (r.ok) {
+                // Stay busy until the slip page replaces this one.
+                router.push(`/clinic/slip/${r.data.code}#${r.data.secret}`);
+                return;
+              }
+              sending.current = false;
               setBusy(false);
-              if (r.ok) router.push(`/clinic/slip/${r.data.code}#${r.data.secret}`);
-              else setErr(r.status === 401 ? "โปรดเข้าสู่ระบบใหม่" : (r.message_th ?? "สร้างแผนไม่สำเร็จ"));
+              setErr(r.status === 401 ? "โปรดเข้าสู่ระบบใหม่" : (r.message_th ?? "สร้างแผนไม่สำเร็จ"));
             }}
           >
             <QrCode aria-hidden className="h-6 w-6" strokeWidth={2} />

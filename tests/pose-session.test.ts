@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import type { PoseLandmarker } from "@mediapipe/tasks-vision";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getPosture } from "@/lib/content";
 import type { Detector } from "@/lib/content/schema";
+import { runLoop } from "@/lib/pose/camera";
 import { startSession, step, toResult, type SessionState } from "@/lib/pose/session";
 
 /** Feed frames every 100 ms from t0 for `ms`, with a constant inPose value. */
@@ -94,5 +96,74 @@ describe("reps mode", () => {
     const [s] = run(reps, s1, t, 1300, false);
     expect(s.phase).toBe("ready");
     expect(s.side).toBe("L");
+  });
+});
+
+describe("frame loop", () => {
+  let clock = 0;
+  let queued: (() => void)[] = [];
+  beforeEach(() => {
+    clock = 0;
+    queued = [];
+    vi.stubGlobal("performance", { now: () => clock });
+    vi.stubGlobal("requestAnimationFrame", (cb: () => void) => queued.push(cb));
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  /** One screen refresh, 8 ms apart (a 120 Hz phone). */
+  const refresh = () => {
+    clock += 8;
+    const cbs = queued;
+    queued = [];
+    for (const cb of cbs) cb();
+  };
+  const fakeVideo = () => ({ readyState: 4, currentTime: 0, videoWidth: 640, videoHeight: 480 }) as unknown as HTMLVideoElement & { currentTime: number };
+  const fakeModel = (detect: () => { landmarks: unknown[] }) => ({ detectForVideo: vi.fn(detect), close: vi.fn() });
+
+  it("runs the model once per new camera frame, with increasing timestamps", () => {
+    const video = fakeVideo();
+    const model = fakeModel(() => ({ landmarks: [] }));
+    const onFrame = vi.fn();
+    runLoop(video, model as unknown as PoseLandmarker, onFrame);
+    for (let i = 0; i < 12; i++) {
+      if (i % 4 === 0) video.currentTime += 1 / 30; // camera at 30 fps, screen at 120 Hz
+      refresh();
+    }
+    expect(model.detectForVideo).toHaveBeenCalledTimes(3);
+    expect(onFrame).toHaveBeenCalledTimes(3);
+    const ts = model.detectForVideo.mock.calls.map((c) => (c as unknown[])[1] as number);
+    expect([...ts].sort((a, b) => a - b)).toEqual(ts);
+    expect(new Set(ts).size).toBe(ts.length);
+    expect(queued.length).toBe(1); // still scheduled
+  });
+
+  it("stops, closes the model and reports when the model throws", () => {
+    const video = fakeVideo();
+    const model = fakeModel(() => {
+      throw new Error("graph lost");
+    });
+    const onError = vi.fn();
+    runLoop(video, model as unknown as PoseLandmarker, vi.fn(), onError);
+    video.currentTime = 0.1;
+    refresh();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(model.close).toHaveBeenCalledTimes(1);
+    expect(queued.length).toBe(0); // not rescheduled
+  });
+
+  it("stops the same way when the frame callback throws", () => {
+    const video = fakeVideo();
+    const model = fakeModel(() => ({ landmarks: [] }));
+    const onError = vi.fn();
+    runLoop(video, model as unknown as PoseLandmarker, () => {
+      throw new Error("bad frame");
+    }, onError);
+    video.currentTime = 0.1;
+    refresh();
+    video.currentTime = 0.2;
+    refresh();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(model.detectForVideo).toHaveBeenCalledTimes(1);
   });
 });

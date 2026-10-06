@@ -6,14 +6,22 @@ const DAY = 86_400_000;
 const toDay = (d: string) => Date.parse(`${d}T00:00:00Z`);
 export const daysBetween = (a: string, b: string) => Math.round((toDay(b) - toDay(a)) / DAY);
 export const addDays = (d: string, n: number) => new Date(toDay(d) + n * DAY).toISOString().slice(0, 10);
+/** Bangkok calendar day of a timestamp (UTC+7 all year). */
+const bangkokDay = (iso: string) => new Date(Date.parse(iso) + 7 * 3_600_000).toISOString().slice(0, 10);
 
 /** A session counts as "done" when at least one posture was done (camera or button), not only skipped. */
 const isDone = (s: SessionRow) => s.results.some((r) => r.method !== "skipped" && r.units_done > 0);
 
+/** Closed with no consent on file: the patient deleted their data, so there is nothing left to measure. */
+const withdrawn = (p: PlanRow) => p.status !== "active" && p.consent_at === null;
+
 /** Share of expected sessions done in [from, to] (inclusive), capped at 1. null when nothing was expected yet. */
 export function adherence(plan: PlanRow, sessions: SessionRow[], from: string, to: string): number | null {
   const start = from > plan.start_date ? from : plan.start_date;
-  const end = to < plan.next_visit_date ? to : plan.next_visit_date;
+  // A closed plan expects nothing after the day it was closed, even if that was before the visit date.
+  const closedOn = plan.status !== "active" && plan.closed_at ? bangkokDay(plan.closed_at) : null;
+  let end = to < plan.next_visit_date ? to : plan.next_visit_date;
+  if (closedOn && closedOn < end) end = closedOn;
   const days = daysBetween(start, end) + 1;
   if (days <= 0) return null;
   const expected = (plan.days_per_week / 7) * days;
@@ -113,6 +121,7 @@ export interface DtamSummary {
   totals: { plans: number; active_patients: number; adherence: number | null; completion_rate: number | null; camera_share: number | null };
   weekly_adherence: { week_start: string; adherence: number | null }[];
   flags_by_group: { group_id: string; level: RedFlagLevel; count: number }[];
+  flags_by_level: { level: RedFlagLevel; count: number }[]; // each flag once, however many groups its plan has
   clinics: ClinicSummary[];
 }
 
@@ -128,22 +137,33 @@ function stats(plans: PlanRow[], sessions: SessionRow[], today: string) {
   const completion = closed.length ? closed.filter((p) => p.status === "completed").length / closed.length : null;
   const results = sessions.flatMap((s) => s.results).filter((r) => r.method !== "skipped");
   const camera = results.length ? results.filter((r) => r.method === "camera").length / results.length : null;
-  const adh = mean(plans.map((p) => adherence(p, sessions, p.start_date, today)));
+  const adh = mean(plans.filter((p) => !withdrawn(p)).map((p) => adherence(p, sessions, p.start_date, today)));
   return { plans: plans.length, active, completion, camera, adh };
 }
 
 /** DTAM view: aggregates only, no per-patient rows, small clinics masked. */
 export function dtamSummary(clinics: ClinicRow[], plans: PlanRow[], sessions: SessionRow[], flags: FlagRow[], today: string, weeks = 8): DtamSummary {
-  const all = stats(plans, sessions, today);
+  // Totals and the weekly series cover shown clinics only, so subtracting the shown rows reveals nothing about a hidden one.
+  const shownIds = new Set(clinics.filter((c) => plans.filter((p) => p.clinic_id === c.id).length >= MIN_CELL).map((c) => c.id));
+  const vis = plans.filter((p) => shownIds.has(p.clinic_id));
+  const visIds = new Set(vis.map((p) => p.id));
+  const visSessions = sessions.filter((s) => visIds.has(s.plan_id));
+  const all = stats(vis, visSessions, today);
+  const counted = vis.filter((p) => !withdrawn(p));
   const weekly = Array.from({ length: weeks }, (_, i) => {
     const start = addDays(today, -7 * (weeks - i) + 1);
     const end = addDays(start, 6);
-    return { week_start: start, adherence: mean(plans.map((p) => adherence(p, sessions, start, end))) };
+    return { week_start: start, adherence: mean(counted.map((p) => adherence(p, visSessions, start, end))) };
   });
+  // Flags stay national (safety signals); they are never split per clinic, so they can't be subtracted.
   const planGroups = new Map(plans.map((p) => [p.id, p.group_ids]));
   const counts = new Map<string, number>();
+  const levelCounts = new Map<RedFlagLevel, number>();
   for (const f of flags) {
-    for (const g of planGroups.get(f.plan_id) ?? []) {
+    const groups = planGroups.get(f.plan_id);
+    if (!groups) continue;
+    levelCounts.set(f.level, (levelCounts.get(f.level) ?? 0) + 1);
+    for (const g of groups) {
       const key = `${g}|${f.level}`;
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
@@ -152,6 +172,7 @@ export function dtamSummary(clinics: ClinicRow[], plans: PlanRow[], sessions: Se
     const [group_id, level] = k.split("|");
     return { group_id, level: level as RedFlagLevel, count };
   });
+  const flagsByLevel = [...levelCounts.entries()].map(([level, count]) => ({ level, count }));
   const perClinic = clinics.map((c): ClinicSummary => {
     const cp = plans.filter((p) => p.clinic_id === c.id);
     const ids = new Set(cp.map((p) => p.id));
@@ -174,6 +195,7 @@ export function dtamSummary(clinics: ClinicRow[], plans: PlanRow[], sessions: Se
     totals: { plans: all.plans, active_patients: all.active, adherence: all.adh, completion_rate: all.completion, camera_share: all.camera },
     weekly_adherence: weekly,
     flags_by_group: flagsByGroup,
+    flags_by_level: flagsByLevel,
     clinics: perClinic,
   };
 }

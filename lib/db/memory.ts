@@ -88,6 +88,12 @@ export class MemoryStore implements Store {
     this.plans = this.plans.filter((p) => !old.includes(p.id));
     return old.length;
   }
+  async deletePlansByCode(codes: string[]) {
+    const ids = this.plans.filter((p) => codes.includes(p.code)).map((p) => p.id);
+    for (const id of ids) await this.deletePlanData(id);
+    this.plans = this.plans.filter((p) => !ids.includes(p.id));
+    return ids.length;
+  }
   async resetAll() {
     this.clinics = [];
     this.plans = [];

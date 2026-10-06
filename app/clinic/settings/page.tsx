@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { BookOpen, Info, Lock, Save } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { BookOpen, Info, Lock, RotateCcw, Save } from "lucide-react";
 import { api, enterOpenClinic } from "@/lib/client";
 import { redflags } from "@/lib/content";
 import type { ClinicRuleSettings } from "@/lib/redflags";
@@ -15,6 +15,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState<{ unauthorized: boolean; message: string } | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
   // Text typed in each threshold box; settings only ever holds a valid 1-10 value.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
 
@@ -26,17 +27,33 @@ export default function SettingsPage() {
   };
   const isValid = (t: string) => /^\d+$/.test(t) && Number(t) >= 1 && Number(t) <= 10;
 
-  useEffect(() => {
-    (async () => {
-      const get = () => api<{ clinic: { settings: ClinicRuleSettings } }>("/api/clinic/dashboard");
-      let r = await get();
-      if (r.status === 401 && (await enterOpenClinic())) r = await get();
-      if (r.ok) setSettings(r.data.clinic.settings);
-      else if (r.status === 401) window.location.href = "/clinic";
-    })();
+  const load = useCallback(async () => {
+    setLoadErr(null);
+    const get = () => api<{ clinic: { settings: ClinicRuleSettings } }>("/api/clinic/dashboard");
+    let r = await get();
+    if (r.status === 401 && (await enterOpenClinic())) r = await get();
+    if (r.ok) setSettings(r.data.clinic.settings);
+    else if (r.status === 401) window.location.href = "/clinic";
+    else setLoadErr(r.message_th ?? "โหลดไม่ได้ ลองใหม่อีกครั้ง");
   }, []);
+  useEffect(() => {
+    const t = setTimeout(load, 0);
+    return () => clearTimeout(t);
+  }, [load]);
 
   const hasBad = Object.values(drafts).some((t) => !isValid(t));
+  if (!settings && loadErr)
+    return (
+      <ClinicShell>
+        <div role="alert" className="card mx-auto flex max-w-lg flex-col items-center gap-4 p-8 text-center">
+          <p className="font-semibold text-foreground">{loadErr}</p>
+          <button className="btn" onClick={load}>
+            <RotateCcw aria-hidden className="h-5 w-5" strokeWidth={2} />
+            ลองอีกครั้ง
+          </button>
+        </div>
+      </ClinicShell>
+    );
   if (!settings) return <main className="flex flex-1 items-center justify-center px-5 py-12 text-xl text-muted">กำลังโหลด…</main>;
   return (
     <ClinicShell>

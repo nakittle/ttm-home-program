@@ -107,10 +107,10 @@ export function evaluate(cond: Condition, ctx: RuleContext): boolean {
   throw new Error(`unknown condition ${JSON.stringify(cond)}`);
 }
 
-/** Are all landmarks this posture needs visible (for the camera-setup screen)? */
+/** Are all landmarks this posture needs visible (for the camera-setup screen)? Includes the torso, which calibration needs. */
 export function requiredVisible(det: Detector, frame: Frame, side: Side | null): boolean {
   const ctx: RuleContext = { frame, calib: { U: 1, base: frame }, side: side ?? "L" };
-  return det.required.every((n) => point(frame, resolveName(n, ctx)) !== null);
+  return torsoLength(frame) !== null && det.required.every((n) => point(frame, resolveName(n, ctx)) !== null);
 }
 
 /** Calibrate from ~2 s of neutral frames. Returns null when the torso is not visible. */

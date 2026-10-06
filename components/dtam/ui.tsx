@@ -19,6 +19,9 @@ export function pointsDelta(now: number | null | undefined, before: number | nul
   return Math.round(now * 100) - Math.round(before * 100);
 }
 
+/** What the totals cover: hidden clinics are left out of them, so say so when there is one. */
+export const totalsLabel = (anyHidden: boolean) => (anyHidden ? "รวมเฉพาะศูนย์ที่แสดง" : "ทุกศูนย์รวมกัน");
+
 /** Card heading: icon in a soft tile, title, optional one-line help. */
 export function CardHead({ icon: Icon, title, help, id, children }: { icon: LucideIcon; title: string; help?: React.ReactNode; id?: string; children?: React.ReactNode }) {
   return (

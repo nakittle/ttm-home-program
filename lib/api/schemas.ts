@@ -27,7 +27,7 @@ export const PatchPlanBody = z.object({
 });
 
 export const SettingsBody = z.object({
-  disabled: z.array(z.string()).refine((ids) => ids.every((id) => adjustable.includes(id)), "only adjustable rules"),
+  disabled: z.array(z.enum(adjustable as [string, ...string[]])).max(adjustable.length).transform((ids) => [...new Set(ids)]),
   thresholds: z.record(z.string(), z.number().min(1).max(10)).refine((t) => Object.keys(t).every((id) => adjustable.includes(id)), "only adjustable rules"),
 });
 

@@ -79,7 +79,9 @@ export function isLocked(code: string, now = Date.now()): boolean {
 }
 
 export function recordFailure(code: string, now = Date.now()): void {
-  const count = (failures.get(code)?.count ?? 0) + 1;
+  const prev = failures.get(code);
+  // After a lock has run out, start counting again, so one typo does not lock the code for another 5 minutes.
+  const count = (prev && prev.until && prev.until <= now ? 0 : (prev?.count ?? 0)) + 1;
   failures.set(code, { count, until: count >= 5 ? now + 5 * 60_000 : 0 });
 }
 

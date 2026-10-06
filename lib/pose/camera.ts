@@ -53,27 +53,47 @@ export function closeCamera(stream: MediaStream | null): void {
 }
 
 /**
- * Run the model on every animation frame and hand each Frame to `onFrame`.
+ * Run the model on each new video frame and hand each Frame to `onFrame`.
  * Frames stay on the device: nothing here is uploaded. Returns a stop function.
+ * If the model or `onFrame` throws, the loop stops, the model is closed (the next load makes a new one) and `onError` is called.
  */
-export function runLoop(video: HTMLVideoElement, landmarker: PoseLandmarker, onFrame: (f: Frame | null, fps: number) => void): () => void {
+export function runLoop(
+  video: HTMLVideoElement,
+  landmarker: PoseLandmarker,
+  onFrame: (f: Frame | null, fps: number) => void,
+  onError?: (e: unknown) => void,
+): () => void {
   let raf = 0;
   let stopped = false;
-  let lastTs = -1;
+  let lastTs = -1; // detectForVideo needs increasing timestamps (performance.now() can be coarse)
+  let lastVideoTime = -1; // screens refresh faster than the camera: skip frames already seen
   const times: number[] = [];
   const tick = () => {
     if (stopped) return;
     const now = performance.now();
-    if (video.readyState >= 2 && now !== lastTs) {
+    if (video.readyState >= 2 && video.currentTime !== lastVideoTime && now > lastTs) {
       lastTs = now;
-      const res = landmarker.detectForVideo(video, now);
-      times.push(now);
-      while (times.length && now - times[0] > 1000) times.shift();
-      const lm = res.landmarks[0];
-      const frame: Frame | null = lm
-        ? { t: now, width: video.videoWidth, height: video.videoHeight, points: lm.map((p) => ({ x: p.x, y: p.y, visibility: p.visibility ?? 0 })) }
-        : null;
-      onFrame(frame, times.length);
+      lastVideoTime = video.currentTime;
+      try {
+        const res = landmarker.detectForVideo(video, now);
+        times.push(now);
+        while (times.length && now - times[0] > 1000) times.shift();
+        const lm = res.landmarks[0];
+        const frame: Frame | null = lm
+          ? { t: now, width: video.videoWidth, height: video.videoHeight, points: lm.map((p) => ({ x: p.x, y: p.y, visibility: p.visibility ?? 0 })) }
+          : null;
+        onFrame(frame, times.length);
+      } catch (e) {
+        stopped = true;
+        landmarkerPromise = null;
+        try {
+          landmarker.close();
+        } catch {
+          // already broken
+        }
+        onError?.(e);
+        return;
+      }
     }
     raf = requestAnimationFrame(tick);
   };
