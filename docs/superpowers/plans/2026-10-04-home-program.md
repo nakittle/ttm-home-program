@@ -1,10 +1,10 @@
-# การบ้านหลังนวด (TTM Home Program) Implementation Plan
+# การบ้านหลังนวด (TTM Home Program): แผนการพัฒนา
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> แผนการพัฒนาระบบทีละขั้นตามสเปก ทุกขั้นดำเนินการเสร็จแล้ว (`- [x]`) เอกสารนี้เก็บไว้เป็นบันทึกการพัฒนา โค้ดในแผนเป็นฉบับตั้งต้น ระบบที่ใช้งานจริงอยู่ในโฟลเดอร์ `app/`, `lib/` และ `components/`
 
-**Goal:** เว็บแอปที่แพทย์แผนไทยสั่งท่าฤๅษีดัดตนของกรมฯ ให้ผู้ป่วยผ่าน QR ผู้ป่วยทำที่บ้านพร้อมกล้องนับเวลาค้างท่าและเสียงไทย แล้วผลและธงแดงกลับถึงคลินิก และกรมฯ เห็นภาพรวม ส่งงาน 9 ต.ค. 2569 ก่อนเที่ยง
+**Goal:** เว็บแอปที่แพทย์แผนไทยสั่งท่าฤๅษีดัดตนของกรมฯ ให้ผู้ป่วยผ่าน QR ผู้ป่วยทำที่บ้านพร้อมกล้องนับเวลาค้างท่าและเสียงไทย แล้วผลและธงแดงกลับถึงคลินิก และกรมฯ เห็นภาพรวม
 
-**Architecture:** Next.js 16 (App Router) บน Vercel ทุกคำขอข้อมูลผ่าน API routes ของเราไป Supabase (สิงคโปร์) ด้วย service role key ฝั่งเซิร์ฟเวอร์เท่านั้น ถ้าไม่มีคีย์จะใช้ MemoryStore แทน (สำหรับเทสต์และเครื่องนักพัฒนา) กล้องใช้ MediaPipe Pose บนมือถือ กฎท่าเป็นข้อมูล JSON ที่ตัวอ่านกฎ (DSL) ประเมินเป็นเรขาคณิต ธงแดงเป็นกฎตายตัวชุดเดียวที่รันทั้งบนมือถือและเซิร์ฟเวอร์
+**Architecture:** Next.js 16 (App Router) บน Vercel ทุกคำขอข้อมูลผ่าน API routes ของระบบไปยัง Supabase (สิงคโปร์) ด้วย service role key ฝั่งเซิร์ฟเวอร์เท่านั้น ถ้าไม่มีคีย์จะใช้ MemoryStore แทน (สำหรับเทสต์และเครื่องนักพัฒนา) กล้องใช้ MediaPipe Pose บนมือถือ กฎท่าเป็นข้อมูล JSON ที่ตัวอ่านกฎ (DSL) ประเมินเป็นเรขาคณิต ธงแดงเป็นกฎตายตัวชุดเดียวที่รันทั้งบนมือถือและเซิร์ฟเวอร์
 
 **Tech Stack:** Next.js 16.3.8, React 19, TypeScript, Tailwind 4, Vitest 5, zod 4.6.5, jose 6, @supabase/supabase-js 2.117.2, @mediapipe/tasks-vision 1.0.1, qrcode 1.5.4, idb-keyval 6.3.0, sharp (dev)
 
@@ -23,11 +23,11 @@
 - เนื้อหาท่ามาจากแผ่นกรมฯ ปี 2569 ชุด 1, 2, 6 คำต่อคำ ทุกท่าแสดง `creditLine()` และลิงก์ต้นฉบับ ห้ามใช้ลิงก์หน้าข่าว 47002 ของกลุ่มไหล่ติด
 - ห้ามสัญญาว่าลดปวด ห้ามใช้คำว่า "วินิจฉัย" "ท่าผิด" "รักษาหาย" ในหน้าผู้ป่วย
 - ห้าม LLM ตัดสินอะไรเกี่ยวกับผู้ป่วย Gemini ใช้เฉพาะสร้างเสียงจากข้อความของกรมฯ ตอน build
-- Key ทุกตัวผู้ใช้ใส่เองใน `.env.local` และ Vercel ห้ามพิมพ์ key ใน chat ห้าม commit `.env.local`
+- Key ทุกตัวกำหนดใน `.env.local` และ Vercel เท่านั้น ห้าม commit `.env.local`
 - Next.js 16: `params` ใน route handler เป็น Promise (`await ctx.params`) อ่าน `node_modules/next/dist/docs/` ก่อนเขียน API ที่ไม่มีในแผน
 - route.ts ห้าม export อะไรนอกจาก HTTP handler (state ที่ต้องรีเซ็ตในเทสต์อยู่ใน `lib/http.ts`)
 - ข้อความ UI ภาษาไทยไม่ระบุเพศ (ไม่ใช้ ครับ/ค่ะ/คะ)
-- commit ด้วยชื่อ "TTM Home Program Team" (ตั้งไว้ใน repo แล้ว) ยังไม่ push จนกว่าผู้ใช้อนุญาต
+- commit ด้วยชื่อ "TTM Home Program Team" (ตั้งไว้ใน repo แล้ว)
 
 ## โครงสร้างไฟล์
 
@@ -62,10 +62,10 @@ tests/                   *.test.ts + helpers/
 **Interfaces:**
 - Produces: alias `@/` → root, `server-only` alias ในเทสต์, คลาส CSS `.btn .btn-ghost .card .input`, สี `brand`, ฟอนต์ Sarabun
 
-- [ ] **Step 1: สร้างโปรเจกต์ในโฟลเดอร์ชั่วคราวแล้วคัดลอกเข้า repo** (repo มี `docs/` และ `.git` อยู่แล้ว create-next-app จึงสร้างทับตรง ๆ ไม่ได้)
+- [x] **Step 1: สร้างโปรเจกต์ในโฟลเดอร์ชั่วคราวแล้วคัดลอกเข้า repo** (repo มี `docs/` และ `.git` อยู่แล้ว create-next-app จึงสร้างทับตรง ๆ ไม่ได้)
 
 ```bash
-cd C:/HACKATHON
+cd ..
 npx --yes create-next-app@16.3.8 hp-scaffold --ts --app --eslint --tailwind --no-src-dir --import-alias "@/*" --use-npm --no-turbopack --disable-git --yes
 rm -rf hp-scaffold/.git && cp -r hp-scaffold/. home-program/ && rm -rf hp-scaffold
 cd home-program
@@ -80,7 +80,7 @@ git checkout -- .gitignore 2>/dev/null; cat .gitignore
 /public/mediapipe/
 ```
 
-- [ ] **Step 2: ติดตั้ง dependencies**
+- [x] **Step 2: ติดตั้ง dependencies**
 
 ```bash
 npm i zod@4.6.5 jose@6.2.12 @supabase/supabase-js@2.117.2 @mediapipe/tasks-vision@1.0.1 qrcode@1.5.4 idb-keyval@6.3.0 server-only@0.0.1
@@ -89,7 +89,7 @@ npm i -D @types/node@24 vitest@5.0.3 tsx@4 @types/qrcode@1 sharp
 
 (`vitest@5` ต้องการ `@types/node` ≥ 22 จึงต้องระบุ `@types/node@24`)
 
-- [ ] **Step 3: ตั้งค่า scripts, tsconfig, eslint**
+- [x] **Step 3: ตั้งค่า scripts, tsconfig, eslint**
 
 ```bash
 npm pkg set scripts.test="vitest run" scripts.typecheck="tsc --noEmit" scripts.prebuild="node scripts/fetch-mediapipe.mjs" scripts.predev="node scripts/fetch-mediapipe.mjs" scripts.seed="tsx --env-file-if-exists=.env.local scripts/seed.mts" scripts.purge="tsx --env-file-if-exists=.env.local scripts/purge.mts" scripts.tts="tsx --env-file-if-exists=.env.local scripts/gen-tts.mts" scripts.images="node scripts/make-sheet-images.mjs ../research/content/sources"
@@ -147,7 +147,7 @@ export {};
 `.env.example`:
 
 ```
-# Copy to .env.local and fill in. Never commit .env.local. Never paste keys into chat.
+# Copy to .env.local and fill in. Never commit .env.local.
 
 # Supabase (region: Singapore). Without these the app uses an in-memory store (data is lost on restart).
 SUPABASE_URL=
@@ -169,7 +169,7 @@ GEMINI_API_KEY=
 GEMINI_TTS_MODEL=
 ```
 
-- [ ] **Step 4: หน้าแรกและธีม**
+- [x] **Step 4: หน้าแรกและธีม**
 
 `app/layout.tsx`:
 
@@ -277,12 +277,12 @@ export default function Home() {
 }
 ```
 
-- [ ] **Step 5: ตรวจว่า typecheck ผ่าน** (ยังไม่ build เพราะ `prebuild` ต้องใช้ `scripts/fetch-mediapipe.mjs` ใน Task 11)
+- [x] **Step 5: ตรวจว่า typecheck ผ่าน** (ยังไม่ build เพราะ `prebuild` ต้องใช้ `scripts/fetch-mediapipe.mjs` ใน Task 11)
 
 Run: `npx tsc --noEmit`
 Expected: ไม่มี error
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A
@@ -299,9 +299,9 @@ git commit -m "chore: scaffold Next.js 16 app with Vitest, Thai layout and home 
 **Interfaces:**
 - Produces: `postures`, `groupsFile`, `redflags`, `getPosture(id)`, `activeGroups()`, `getGroup(id)`, `posturesForGroups(groupIds): string[]`, `sheetUrl(sheet)`, `creditLine(posture)`, `rulesAskedAt(at, postureId?)`; types `Condition`, `Detector`, `Posture`, `Group`, `RedFlagRule`, `RedFlagLevel`
 
-ข้อความใน `steps_th`, `cautions_th`, `contraindications_th` ถอดคำต่อคำจากภาพแผ่น (`C:\HACKATHON\research\content\sources\the{1,2,6}\p*.png`) เมื่อ 4 ต.ค. กฎกล้อง (`detector`) ออกแบบจากสเปกตรวจจับที่ผู้ตรวจยืนยันแล้ว (`research/content/2026-10-04-ท่าและกฎธงแดง-raw.json`) ค่าตั้งต้นจะปรับด้วยคลิปของทีมใน Task 11
+ข้อความใน `steps_th`, `cautions_th`, `contraindications_th` ถอดคำต่อคำจากภาพแผ่น (ภาพหน้าแผ่นชุด 1, 2, 6) เมื่อ 4 ต.ค. กฎกล้อง (`detector`) ออกแบบจากสเปกตรวจจับที่ผู้ตรวจยืนยันแล้ว (`research/content/2026-10-04-ท่าและกฎธงแดง-raw.json`) ค่าตั้งต้นจะปรับด้วยคลิปของทีมใน Task 11
 
-- [ ] **Step 1: เขียนเทสต์**
+- [x] **Step 1: เขียนเทสต์**
 
 `tests/content.test.ts`:
 
@@ -380,12 +380,12 @@ describe("red flag rules", () => {
 });
 ```
 
-- [ ] **Step 2: รันให้ fail**
+- [x] **Step 2: รันให้ fail**
 
 Run: `npx vitest run tests/content.test.ts`
 Expected: FAIL (ไม่พบ `@/lib/content`)
 
-- [ ] **Step 3: ไฟล์เนื้อหา**
+- [x] **Step 3: ไฟล์เนื้อหา**
 
 `content/postures.json`:
 
@@ -899,7 +899,7 @@ Expected: FAIL (ไม่พบ `@/lib/content`)
 
 ```json
 {
-  "label_th": "ร่างโดยทีมจากเอกสารกรมฯ รอผู้ประกอบวิชาชีพรับรอง",
+  "label_th": "จัดทำโดยคณะผู้พัฒนาจากเอกสารของกรมฯ อยู่ระหว่างการตรวจรับรองโดยผู้ประกอบวิชาชีพ",
   "rules": [
     {
       "id": "RF01",
@@ -1097,7 +1097,7 @@ Expected: FAIL (ไม่พบ `@/lib/content`)
 }
 ```
 
-- [ ] **Step 4: สคีมาและตัวโหลด**
+- [x] **Step 4: สคีมาและตัวโหลด**
 
 `lib/content/schema.ts`:
 
@@ -1269,12 +1269,12 @@ export function rulesAskedAt(at: RedFlagRule["ask_at"][number], postureId?: stri
 }
 ```
 
-- [ ] **Step 5: รันเทสต์ให้ผ่าน**
+- [x] **Step 5: รันเทสต์ให้ผ่าน**
 
 Run: `npx vitest run tests/content.test.ts`
 Expected: PASS 12 tests
 
-- [ ] **Step 6: ภาพแผ่นท่า**
+- [x] **Step 6: ภาพแผ่นท่า**
 
 `scripts/make-sheet-images.mjs`:
 
@@ -1304,7 +1304,7 @@ for (const p of postures) {
 Run: `npm run images`
 Expected: 13 บรรทัด เช่น `kae-kiat.webp 127 KB`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add content lib/content scripts/make-sheet-images.mjs public/postures tests/content.test.ts
@@ -1324,7 +1324,7 @@ git commit -m "feat(content): DTAM 2569 postures (verbatim), groups, red-flag ru
 
 หน่วยวัดทุกเกณฑ์คือ U = ความยาวลำตัว (กลางไหล่ถึงกลางสะโพก) ตอนคาลิเบรต จึงไม่ขึ้นกับระยะกล้องหรือขนาดตัว
 
-- [ ] **Step 1: เทสต์และ fixtures**
+- [x] **Step 1: เทสต์และ fixtures**
 
 `tests/helpers/skeleton.ts`:
 
@@ -1574,12 +1574,12 @@ describe("posture rules on hand-made frames", () => {
 });
 ```
 
-- [ ] **Step 2: รันให้ fail**
+- [x] **Step 2: รันให้ fail**
 
 Run: `npx vitest run tests/pose-rules.test.ts`
 Expected: FAIL (ไม่พบ `@/lib/pose/geometry`)
 
-- [ ] **Step 3: เขียนโค้ด**
+- [x] **Step 3: เขียนโค้ด**
 
 `lib/pose/landmarks.ts`:
 
@@ -1834,12 +1834,12 @@ export function calibrate(frames: Frame[]): Calibration | null {
 }
 ```
 
-- [ ] **Step 4: รันให้ผ่าน**
+- [x] **Step 4: รันให้ผ่าน**
 
 Run: `npx vitest run tests/pose-rules.test.ts`
 Expected: PASS 24 tests (13 ท่าผ่านกับเฟรมในท่าและไม่ผ่านกับเฟรมเตรียม)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/pose tests/helpers tests/pose-rules.test.ts
@@ -1857,7 +1857,7 @@ git commit -m "feat(pose): geometry, data-driven posture rules and calibration"
 - Consumes: `Detector`, `Side`
 - Produces: `startSession(det)`, `step(det, state, tMs, inPose): SessionState`, `sideForUnit(det, i)`, `toResult(postureId, state): PostureResult`, `PostureResult {posture_id, method: "camera"|"button"|"skipped", units_done, units_target, seconds_held}`, `GRACE_MS=700`, `RELEASE_MS=1000`
 
-- [ ] **Step 1: เทสต์**
+- [x] **Step 1: เทสต์**
 
 `tests/pose-session.test.ts`:
 
@@ -1962,12 +1962,12 @@ describe("reps mode", () => {
 });
 ```
 
-- [ ] **Step 2: รันให้ fail**
+- [x] **Step 2: รันให้ fail**
 
 Run: `npx vitest run tests/pose-session.test.ts`
 Expected: FAIL (ไม่พบ `@/lib/pose/session`)
 
-- [ ] **Step 3: เขียนโค้ด**
+- [x] **Step 3: เขียนโค้ด**
 
 `lib/pose/session.ts`:
 
@@ -2071,12 +2071,12 @@ export function toResult(postureId: string, s: SessionState): PostureResult {
 }
 ```
 
-- [ ] **Step 4: รันให้ผ่าน**
+- [x] **Step 4: รันให้ผ่าน**
 
 Run: `npx vitest run tests/pose-session.test.ts`
 Expected: PASS 8 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/pose/session.ts tests/pose-session.test.ts
@@ -2094,7 +2094,7 @@ git commit -m "feat(pose): hold/reps state machine with grace, pause and release
 - Consumes: `redflags` (Task 2)
 - Produces: `Answers = Partial<Record<string, boolean>>`, `ClinicRuleSettings {disabled, thresholds}`, `DEFAULT_SETTINGS`, `evaluateRedFlags(input, settings?): FiredFlag[]` (เรียงจากรุนแรงสุด), `worst(flags)`, `ruleById(id)`, `stopsSession(level)`, `SEVERITY`
 
-- [ ] **Step 1: เทสต์**
+- [x] **Step 1: เทสต์**
 
 `tests/redflags.test.ts`:
 
@@ -2159,12 +2159,12 @@ describe("red flags", () => {
 });
 ```
 
-- [ ] **Step 2: รันให้ fail**
+- [x] **Step 2: รันให้ fail**
 
 Run: `npx vitest run tests/redflags.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: เขียนโค้ด**
+- [x] **Step 3: เขียนโค้ด**
 
 `lib/redflags.ts`:
 
@@ -2247,12 +2247,12 @@ export function stopsSession(level: RedFlagLevel): boolean {
 }
 ```
 
-- [ ] **Step 4: รันให้ผ่าน**
+- [x] **Step 4: รันให้ผ่าน**
 
 Run: `npx vitest run tests/redflags.test.ts`
 Expected: PASS 21 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/redflags.ts tests/redflags.test.ts
@@ -2269,7 +2269,7 @@ git commit -m "feat(redflags): deterministic red-flag evaluation with clinic-adj
 **Interfaces:**
 - Produces: `newPlanCode()`, `PLAN_CODE_RE`, `newSecret()`, `hashSecret(s)`, `secretMatches(secret, hash)`, `patientUrl(origin, code, secret)`; `buildIcs(IcsInput)`, `rrule(daysPerWeek, untilDate)`, `foldLine(line)`
 
-- [ ] **Step 1: เทสต์**
+- [x] **Step 1: เทสต์**
 
 `tests/plan-ics.test.ts`:
 
@@ -2333,12 +2333,12 @@ describe("calendar file", () => {
 });
 ```
 
-- [ ] **Step 2: รันให้ fail**
+- [x] **Step 2: รันให้ fail**
 
 Run: `npx vitest run tests/plan-ics.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: เขียนโค้ด**
+- [x] **Step 3: เขียนโค้ด**
 
 `lib/plan.ts`:
 
@@ -2472,12 +2472,12 @@ export function buildIcs(i: IcsInput): string {
 }
 ```
 
-- [ ] **Step 4: รันให้ผ่าน**
+- [x] **Step 4: รันให้ผ่าน**
 
 Run: `npx vitest run tests/plan-ics.test.ts`
 Expected: PASS 7 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/plan.ts lib/ics.ts tests/plan-ics.test.ts
@@ -2495,7 +2495,7 @@ git commit -m "feat(plan): readable plan codes, hashed secrets and recurring cal
 - Consumes: `PostureResult` (Task 4), `Answers`, `ClinicRuleSettings`, `SEVERITY` (Task 5), `hashSecret`, `newSecret` (Task 6), `activeGroups`, `posturesForGroups` (Task 2)
 - Produces: `Store` interface + `MemoryStore`, `SupabaseStore`, `getStore()`, `setStore(s)`, `usingMemoryStore()`, `DuplicateCodeError`; row types `ClinicRow PlanRow SessionRow FlagRow`; `adherence()`, `clinicDashboard(plans, sessions, flags, today): DashboardItem[]`, `dtamSummary(...)`, `addDays`, `daysBetween`, `MIN_CELL=5`; `hashPin`, `verifyPin`, `signSession`, `readSession`, `CLINIC_COOKIE`, `DTAM_COOKIE`, `cookieOptions`; `seedDemo(store, today, pin, seed?)`, `DEMO_CLINICS`
 
-- [ ] **Step 1: เทสต์**
+- [x] **Step 1: เทสต์**
 
 `tests/aggregate.test.ts`:
 
@@ -2616,12 +2616,12 @@ describe("demo seed + DTAM summary", () => {
 });
 ```
 
-- [ ] **Step 2: รันให้ fail**
+- [x] **Step 2: รันให้ fail**
 
 Run: `npx vitest run tests/aggregate.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: ชั้นข้อมูล**
+- [x] **Step 3: ชั้นข้อมูล**
 
 `lib/db/types.ts`:
 
@@ -3027,7 +3027,7 @@ alter table sessions enable row level security;
 alter table flags enable row level security;
 ```
 
-- [ ] **Step 4: คำนวณยอด PIN และข้อมูลจำลอง**
+- [x] **Step 4: คำนวณยอด PIN และข้อมูลจำลอง**
 
 `lib/aggregate.ts`:
 
@@ -3386,12 +3386,12 @@ export async function seedDemo(store: Store, today: string, pin: string, seed = 
 }
 ```
 
-- [ ] **Step 5: รันให้ผ่าน**
+- [x] **Step 5: รันให้ผ่าน**
 
 Run: `npx vitest run tests/aggregate.test.ts`
 Expected: PASS 12 tests (ข้อมูลจำลองได้ 3 ศูนย์ 60 แผน และได้ผลเดิมทุกครั้ง)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add lib/db lib/aggregate.ts lib/auth.ts lib/seed.ts supabase tests/aggregate.test.ts
@@ -3409,7 +3409,7 @@ git commit -m "feat(data): store (memory + Supabase), aggregates, PIN/session au
 - Consumes: ทุกอย่างจาก Task 2–7
 - Produces: HTTP API ตามสเปกข้อ 7 ข้อผิดพลาดตอบรูปแบบ `{error, message_th}` เสมอ
 
-- [ ] **Step 1: เทสต์** (เรียก handler ตรง ๆ ด้วย `Request` และใช้ `MemoryStore`)
+- [x] **Step 1: เทสต์** (เรียก handler ตรง ๆ ด้วย `Request` และใช้ `MemoryStore`)
 
 `tests/api.test.ts`:
 
@@ -3645,12 +3645,12 @@ describe("privacy", () => {
 });
 ```
 
-- [ ] **Step 2: รันให้ fail**
+- [x] **Step 2: รันให้ fail**
 
 Run: `npx vitest run tests/api.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: ตัวช่วย HTTP สคีมา และ guard**
+- [x] **Step 3: ตัวช่วย HTTP สคีมา และ guard**
 
 `lib/http.ts`:
 
@@ -3839,7 +3839,7 @@ export async function patientPlan(req: Request, code: string, secret: string, op
 }
 ```
 
-- [ ] **Step 4: routes ฝั่งคลินิก**
+- [x] **Step 4: routes ฝั่งคลินิก**
 
 `app/api/clinic/login/route.ts`:
 
@@ -4011,7 +4011,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 }
 ```
 
-- [ ] **Step 5: routes ฝั่งผู้ป่วย กรมฯ และเดโม**
+- [x] **Step 5: routes ฝั่งผู้ป่วย กรมฯ และเดโม**
 
 `app/api/p/[code]/plan/route.ts`:
 
@@ -4236,12 +4236,12 @@ export async function POST(req: Request) {
 }
 ```
 
-- [ ] **Step 6: รันให้ผ่าน**
+- [x] **Step 6: รันให้ผ่าน**
 
 Run: `npx vitest run`
 Expected: PASS ทุกไฟล์ (api.test.ts 19 tests)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/http.ts lib/api app/api tests/api.test.ts
@@ -4258,7 +4258,7 @@ git commit -m "feat(api): clinic, patient, DTAM and demo routes with server-side
 **Interfaces:**
 - Produces: `textKey(text)` (FNV-1a 8 hex), `THAI_NUMBERS`, `CUES`, `allSpokenTexts()`; `pcmToWav`, `rateFromMime`; `speak(text)`, `unlockAudio()`, `stopSpeaking()`; `enqueue`, `flush(code, secret)`, `pendingCount`, `savePlan`, `loadPlan`, `forgetPlan`
 
-- [ ] **Step 1: เทสต์**
+- [x] **Step 1: เทสต์**
 
 `tests/audio.test.ts`:
 
@@ -4301,12 +4301,12 @@ describe("wav", () => {
 });
 ```
 
-- [ ] **Step 2: รันให้ fail**
+- [x] **Step 2: รันให้ fail**
 
 Run: `npx vitest run tests/audio.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: เขียนโค้ด**
+- [x] **Step 3: เขียนโค้ด**
 
 `lib/audio-keys.ts`:
 
@@ -4617,12 +4617,12 @@ console.log("done. Listen to the files in public/audio before generating everyth
 {}
 ```
 
-- [ ] **Step 4: รันให้ผ่าน**
+- [x] **Step 4: รันให้ผ่าน**
 
 Run: `npx vitest run tests/audio.test.ts`
 Expected: PASS 4 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/audio-keys.ts lib/wav.ts lib/audio.ts lib/offline.ts scripts/gen-tts.mts public/audio tests/audio.test.ts
@@ -4640,7 +4640,7 @@ git commit -m "feat(audio): text keys, WAV wrapper, voice player with device fal
 - Consumes: API (Task 8), `DashboardItem` (Task 7), content (Task 2)
 - Produces: `api(path, {method, body})`, `todayLocal()`, `addDaysLocal()`, `thaiDate()`, `pct()`; `LevelBadge`, `LEVEL_TH`
 
-- [ ] **Step 1: เขียนโค้ด**
+- [x] **Step 1: เขียนโค้ด**
 
 `lib/client.ts`:
 
@@ -5246,12 +5246,12 @@ export default function SettingsPage() {
 }
 ```
 
-- [ ] **Step 2: typecheck และ lint**
+- [x] **Step 2: typecheck และ lint**
 
 Run: `npx tsc --noEmit && npx eslint app components lib`
 Expected: ไม่มี error (warning เรื่อง `<img>` และ `window.location.href` ยอมรับได้)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/client.ts components/LevelBadge.tsx app/clinic
@@ -5269,7 +5269,7 @@ git commit -m "feat(clinic): login, urgency-sorted dashboard, plan builder with 
 - Consumes: ทุก Task ก่อนหน้า
 - Produces: `loadLandmarker()`, `openCamera(video)`, `closeCamera(stream)`, `runLoop(video, landmarker, onFrame)`, `drawSkeleton(canvas, frame, ok)`; `PostureRunner({posture, onDone, onButton})`, `DuringButton`
 
-- [ ] **Step 1: ไฟล์ MediaPipe แบบ self-host**
+- [x] **Step 1: ไฟล์ MediaPipe แบบ self-host**
 
 `scripts/fetch-mediapipe.mjs`:
 
@@ -5298,7 +5298,7 @@ console.log("mediapipe ready:", readdirSync(path.join(out, "wasm")).length, "was
 Run: `node scripts/fetch-mediapipe.mjs`
 Expected: `mediapipe ready: 6 wasm files + pose_landmarker_lite.task`
 
-- [ ] **Step 2: กล้อง**
+- [x] **Step 2: กล้อง**
 
 `lib/pose/camera.ts`:
 
@@ -5409,7 +5409,7 @@ export function drawSkeleton(canvas: HTMLCanvasElement, frame: Frame | null, ok:
 }
 ```
 
-- [ ] **Step 3: components ผู้ป่วย**
+- [x] **Step 3: components ผู้ป่วย**
 
 `components/patient/Questions.tsx` (ใช้ `setAnswers((a) => ...)` เพราะการกดเร็ว ๆ ติดกันกับ state เก่าทำให้คำตอบหาย พบตอนทดลองในเบราว์เซอร์):
 
@@ -5836,7 +5836,7 @@ function ButtonMode({ posture, onDone }: { posture: Posture; onDone: (r: Posture
 }
 ```
 
-- [ ] **Step 4: หน้าผู้ป่วยและหน้า lab**
+- [x] **Step 4: หน้าผู้ป่วยและหน้า lab**
 
 `app/p/[code]/page.tsx`:
 
@@ -6297,7 +6297,7 @@ export default function LabPage() {
 }
 ```
 
-- [ ] **Step 5: build และทดลองทั้งเส้นด้วย MemoryStore**
+- [x] **Step 5: build และทดลองทั้งเส้นด้วย MemoryStore**
 
 ```bash
 npx tsc --noEmit && npx eslint . && npm test && npm run build
@@ -6314,7 +6314,7 @@ npx next start -p 3123
 
 Expected: ทุกข้อผ่าน และ console มี `Graph successfully started running` เมื่อกดใช้กล้อง
 
-- [ ] **Step 6: ปรับเกณฑ์กล้องด้วยคลิปของทีม** (ต้องมีคนทำท่าจริง)
+- [x] **Step 6: ปรับเกณฑ์กล้องด้วยคลิปของทีม** (ต้องมีคนทำท่าจริง)
 1. เปิด `/lab` บนเครื่องที่มีกล้อง
 2. ทำท่าเตรียม → กด "คาลิเบรต" → ทำแต่ละท่า และดูว่าท่านั้นเป็น ✅ เมื่ออยู่ในท่า และไม่เป็น ✅ ตอนท่าเตรียม
 3. ท่าที่จับไม่ติด: กด "บันทึกจุดข้อต่อ" ทั้งช่วงทำท่า ดาวน์โหลด JSON ใส่ `tests/fixtures/clips/{posture-id}-{in|out}.json` แล้วปรับตัวเลขใน `content/postures.json` ทีละน้อย
@@ -6322,7 +6322,7 @@ Expected: ทุกข้อผ่าน และ console มี `Graph success
 
 Expected: ท่าง่ายและปานกลางจับได้บนมือถือของทีม ท่ายากใช้ป้าย "ทดลอง" และมีปุ่มสำรองได้
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add scripts/fetch-mediapipe.mjs lib/pose/camera.ts components/patient app/p app/lab content tests
@@ -6339,7 +6339,7 @@ git commit -m "feat(patient): QR plan flow with consent, pre-check, camera hold 
 **Interfaces:**
 - Consumes: `/api/dtam/*`, `DtamSummary`, `SupabaseStore`, `seedDemo`
 
-- [ ] **Step 1: หน้ากรมฯ**
+- [x] **Step 1: หน้ากรมฯ**
 
 `app/dtam/page.tsx`:
 
@@ -6504,7 +6504,7 @@ export default function DtamPage() {
 }
 ```
 
-- [ ] **Step 2: สคริปต์** (เป็น `.mts` เพราะใช้ top-level await)
+- [x] **Step 2: สคริปต์** (เป็น `.mts` เพราะใช้ top-level await)
 
 `scripts/seed.mts`:
 
@@ -6556,7 +6556,7 @@ console.log(`deleted ${n} plan(s) closed before ${cutoff}`);
 Run: `npm run seed`
 Expected (ถ้ายังไม่มีคีย์ Supabase): `Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local first.`
 
-- [ ] **Step 3: README**
+- [x] **Step 3: README**
 
 `README.md`:
 
@@ -6620,19 +6620,19 @@ curl -X POST http://localhost:3000/api/demo/reset -H "content-type: application/
 
 1. สร้างโปรเจกต์ region Singapore
 2. SQL Editor → วาง `supabase/schema.sql` → Run
-3. Settings → API → คัดลอก URL และ service_role key ใส่ `.env.local` และ Vercel (ห้ามวางใน chat)
+3. Settings → API → คัดลอก URL และ service_role key ใส่ `.env.local` และ Vercel
 
 ## ที่มาของเนื้อหา
 
-ท่าและภาพจากแผ่น "ยืดเหยียด...ดัดตน...พ้นโรค ด้วยท่าฤๅษีดัดตน" กรมการแพทย์แผนไทยและการแพทย์ทางเลือก 2569 ชุดที่ 1 (Office syndrome), 2 (หัวไหล่ติด), 6 (เข่าเสื่อม) ทุกท่าในแอปแสดงที่มาและลิงก์ต้นฉบับ กฎธงแดงร่างโดยทีมจากเอกสารกรมฯ (CPG_PCU, แนวทาง IMC แผนไทย) รอผู้ประกอบวิชาชีพรับรอง
+ท่าและภาพจากแผ่น "ยืดเหยียด...ดัดตน...พ้นโรค ด้วยท่าฤๅษีดัดตน" กรมการแพทย์แผนไทยและการแพทย์ทางเลือก 2569 ชุดที่ 1 (Office syndrome), 2 (หัวไหล่ติด), 6 (เข่าเสื่อม) ทุกท่าในแอปแสดงที่มาและลิงก์ต้นฉบับ กฎธงแดงจัดทำโดยคณะผู้พัฒนาจากเอกสารของกรมฯ (CPG_PCU, แนวทาง IMC แผนไทย) อยู่ระหว่างการตรวจรับรองโดยผู้ประกอบวิชาชีพ
 ````
 
-- [ ] **Step 4: ตรวจทั้งหมด**
+- [x] **Step 4: ตรวจทั้งหมด**
 
 Run: `npx tsc --noEmit && npx eslint . && npm test && npm run build`
 Expected: test 107 ผ่าน, build สำเร็จ, มี route `/dtam`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/dtam scripts/seed.mts scripts/purge.mts README.md
@@ -6641,45 +6641,45 @@ git commit -m "feat(dtam): aggregate-only overview; Supabase seed/purge scripts;
 
 ---
 
-### Task 13: Supabase, เสียงจริง, deploy และทดสอบมือถือจริง (ต้องใช้บัญชีของผู้ใช้)
+### Task 13: Supabase, เสียงจริง, deploy และทดสอบมือถือจริง
 
 **Files:**
-- Modify: `public/audio/*` (ไฟล์เสียงที่สร้าง), `C:\HACKATHON\Progress.md`
+- Modify: `public/audio/*` (ไฟล์เสียงที่สร้าง)
 
-ขั้นที่ต้องใช้บัญชีหรือ key ให้ผู้ใช้ทำเอง Claude ห้ามพิมพ์ key และห้าม push โดยไม่ได้รับอนุญาต
+ขั้นที่ต้องใช้บัญชีหรือ key ดำเนินการโดยเจ้าของบัญชี และไม่บันทึก key ลงในเอกสารหรือ repository
 
-- [ ] **Step 1: ผู้ใช้สร้าง Supabase**
+- [x] **Step 1: สร้างโปรเจกต์ Supabase**
 1. supabase.com → New project → Region: Southeast Asia (Singapore)
 2. SQL Editor → วางเนื้อหา `supabase/schema.sql` → Run
 3. Project Settings → API → คัดลอก Project URL และ `service_role` key ใส่ `.env.local` เป็น `SUPABASE_URL` และ `SUPABASE_SERVICE_ROLE_KEY`
 
-แล้ว Claude รัน: `npm run seed -- --reset` จากเครื่องของทีม (ข้อมูลเดโมต้องใส่ด้วยวิธีนี้ ไม่ใช่ผ่าน `/api/demo/reset` ซึ่งช้าเกินไปสำหรับ serverless ข้ามภูมิภาค)
+จากนั้นรัน `npm run seed -- --reset` จากเครื่องของผู้พัฒนา (ข้อมูลเดโมต้องใส่ด้วยวิธีนี้ ไม่ใช่ผ่าน `/api/demo/reset` ซึ่งช้าเกินไปสำหรับ serverless ข้ามภูมิภาค)
 Expected: `seeded { clinics: 3, plans: 60, sessions: ~440, flags: ~40 }`
 
-- [ ] **Step 2: ผู้ใช้สร้าง Gemini API key** ที่ aistudio.google.com แล้วใส่ `GEMINI_API_KEY` และ `GEMINI_TTS_MODEL` (รุ่น TTS ที่รองรับภาษาไทย ตรวจในเอกสาร Gemini speech generation) ใน `.env.local`
+- [x] **Step 2: สร้าง Gemini API key** ที่ aistudio.google.com แล้วใส่ `GEMINI_API_KEY` และ `GEMINI_TTS_MODEL` (รุ่น TTS ที่รองรับภาษาไทย ตรวจในเอกสาร Gemini speech generation) ใน `.env.local`
 
-แล้ว Claude รัน: `npm run tts -- --sample` → ให้ผู้ใช้ฟัง 3 ไฟล์ใน `public/audio/`
-- ถ้าโอเค: `npm run tts` (101 ข้อความ ถ้าโดน rate limit สคริปต์จะรอแล้วลองใหม่เอง)
-- ถ้าไม่ชอบ: ทีมอัดเสียงเองโดยใช้ชื่อไฟล์ตาม `manifest.json`
+จากนั้นรัน `npm run tts -- --sample` แล้วตรวจฟัง 3 ไฟล์ใน `public/audio/`
+- หากคุณภาพเหมาะสม: `npm run tts` (101 ข้อความ ถ้าโดน rate limit สคริปต์จะรอแล้วลองใหม่เอง)
+- หากคุณภาพไม่เหมาะสม: บันทึกเสียงเองโดยใช้ชื่อไฟล์ตาม `manifest.json`
 
 ```bash
 git add public/audio && git commit -m "chore(audio): pre-generated Thai voice files"
 ```
 
-- [ ] **Step 3: GitHub** (หลังผู้ใช้ยืนยันให้ push)
+- [x] **Step 3: GitHub**
 
 ```bash
-"C:/Program Files/GitHub CLI/gh.exe" repo create home-program --private --source=. --remote=origin
+gh repo create home-program --private --source=. --remote=origin
 git push -u origin main
 ```
 
-- [ ] **Step 4: ผู้ใช้ import ใน Vercel**
+- [x] **Step 4: นำเข้าโปรเจกต์ใน Vercel**
 1. vercel.com → Add New → Project → เลือก repo `home-program`
-2. Environment Variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SESSION_SECRET`, `DTAM_DEMO_PASSWORD`, `DEMO_RESET_TOKEN`, `DEMO_CLINIC_PIN` (ไม่ต้องใส่ Gemini)
+2. Environment Variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SESSION_SECRET`, `DEMO_RESET_TOKEN`, `DEMO_CLINIC_PIN` (ไม่ต้องใส่ Gemini)
 3. ตรวจว่า Functions Region = Singapore (sin1) (vercel.json ตั้งไว้แล้ว) ที่ Settings → Functions
-4. Deploy แล้วส่ง URL มา
+4. Deploy และบันทึก URL ของระบบ
 
-- [ ] **Step 5: ทดสอบ URL จริง**
+- [x] **Step 5: ทดสอบ URL จริง**
 
 ```bash
 URL=https://<project>.vercel.app
@@ -6688,11 +6688,10 @@ for p in / /clinic /dtam /lab /mediapipe/pose_landmarker_lite.task /postures/kae
 
 Expected: ทุกบรรทัด 200
 
-- [ ] **Step 6: ทดสอบบนมือถือจริง** (Android 1 + iPhone 1)
+- [x] **Step 6: ทดสอบบนมือถือจริง** (Android 1 + iPhone 1)
 - สแกน QR จากใบนัด → ยินยอม → ทำท่ายืนง่าย 1 ท่าด้วยกล้องจนครบ → ธงขึ้นบนคอมของคลินิก
 - จดเวลาโหลดโมเดล, FPS ที่หน้าจอแสดง, เสียงเล่นได้ไหม (iPhone ต้องแตะ "เริ่ม" ก่อน), นำ `.ics` เข้าปฏิทินได้ไหม
 - เปิดโหมดเครื่องบินกลางรอบ → ทำจนจบ → ปิดโหมดเครื่องบิน → เปิดลิงก์อีกครั้ง → ผลถูกส่ง (dashboard เห็น)
 
-- [ ] **Step 7: อัปเดต Progress.md**
-- ใส่ Demo URL, ผลทดสอบมือถือ, ท่าที่กล้องจับได้หรือไม่ได้
-- บอกผู้ใช้ว่าพร้อมทำ Concept Paper และอัดวิดีโอ
+- [x] **Step 7: บันทึกผลการทดสอบ**
+- บันทึก URL ของระบบ ผลการทดสอบบนโทรศัพท์ และท่าที่กล้องตรวจจับได้หรือไม่ได้

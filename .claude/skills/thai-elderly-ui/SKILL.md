@@ -5,12 +5,12 @@ description: Project rules for any UI change in การบ้านหลั�
 
 # Thai + elderly UI rules for การบ้านหลังนวด
 
-Patients are mostly older Thai adults on phones; clinic staff and DTAM use desktops. Goal: modern, recognisably Thai, beautiful, and easy for older eyes and hands. Research and sources: `../research/2026-10-04-สกิล-UI-ผู้สูงวัย-ไทย.md` (from the repo root: `C:\HACKATHON\research\`). Items marked [I] are the team's interpretation, not a cited standard.
+Patients are mostly older Thai adults on phones; clinic staff and DTAM use desktops. Goal: modern, recognisably Thai, beautiful, and easy for older eyes and hands. Research and sources are kept in the team's research notes (outside this repository). Items marked [I] are the team's interpretation, not a cited standard.
 
 ## Who owns what (avoid conflicting skills)
 
 - **Design direction:** the one design-direction skill installed (Impeccable if installed, otherwise frontend-design). Feed it THIS file as the brief. Never let a second skill regenerate the design system.
-- **ui-ux-pro-max:** lookup only — `--domain ux`, `--domain color`, industry `healthcare`. Do not run its `--design-system` generator or adopt its font pairings (none are Thai). On this Windows machine call `python`, not `python3` (`python3` is the Microsoft Store stub).
+- **ui-ux-pro-max:** lookup only — `--domain ux`, `--domain color`, industry `healthcare`. Do not run its `--design-system` generator or adopt its font pairings (none are Thai).
 - **design plugin:** `accessibility-review`, `design-critique`, `ux-copy` for review. Do not connect its bundled MCP connectors.
 - **web-design-guidelines (Vercel):** code audit with `file:line` output. Ignore its English typography rules for Thai text.
 - **cognitive-accessibility / adaptive-interfaces:** plain language, memory load, one task per screen.

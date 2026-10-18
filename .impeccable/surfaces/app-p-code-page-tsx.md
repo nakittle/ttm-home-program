@@ -7,13 +7,13 @@ related_targets: ["components/patient/Questions.tsx","components/patient/Posture
 
 # Surface brief: patient flow `/p/[code]`
 
-Mode: Operate. Older Thai adults (often with a child or grandchild) on their own phone at home, indoor daylight or evening room light, phone held in hand or propped 2 m away for the camera. Job: open the QR link, do today's prescribed ฤๅษีดัดตน postures safely, stop the moment something feels wrong, and let the result reach the clinic. Most important screen (user, 4 Oct): Today + Start. Must not feel like a government form, nor "too Thai" (gold kanok, temple). Team rules: `.claude/skills/thai-elderly-ui/SKILL.md` (pinned fonts, sizes, Thaitone palette, content guardrails).
+Mode: Operate. Older Thai adults (often with a child or grandchild) on their own phone at home, indoor daylight or evening room light, phone held in hand or propped 2 m away for the camera. Job: open the QR link, do today's prescribed ฤๅษีดัดตน postures safely, stop the moment something feels wrong, and let the result reach the clinic. Most important screen: Today + Start. Must not feel like a government form, nor "too Thai" (gold kanok, temple). Team rules: `.claude/skills/thai-elderly-ui/SKILL.md` (pinned fonts, sizes, Thaitone palette, content guardrails).
 
 Components in scope: `app/p/[code]/page.tsx`, `components/patient/{Questions,PostureRunner,Outcome}.tsx`, `components/LevelBadge.tsx`, shared tokens in `app/globals.css` + `app/layout.tsx`.
 
 ## Direction contract
 
-Replaced 5 Oct 2026 at the user's request: the first world ("ผ้าขาวม้า" weave, seed 7f3745a0) looked dated to them. The user pinned the reference "Tend — A Habit Garden" (miaai-lab Claude-Opus-5.5-100-HTML-Files #046) and asked to drop the weave entirely.
+Replaced 5 Oct 2026 by team decision: the first direction ("ผ้าขาวม้า" weave, seed 7f3745a0) looked dated. The team chose the reference "Tend — A Habit Garden" (miaai-lab Claude-Opus-5.5-100-HTML-Files #046) and dropped the weave entirely.
 
 THESIS: A calm daily-habit app, not a hospital form: soft sage wash, floating paper cards, a warm greeting, and one big pill to start.
 
@@ -23,10 +23,10 @@ STORY: Greeting, then today's task count and next visit, then one start pill. Th
 
 FIRST VIEWPORT (375×812): brand row (sprout tile, name, clinic, plan-code pill) with a sun-and-leaf corner art; date line; greeting h1 "สวัสดี" + clay time-of-day word; meta line; 76px forest start pill; the week card begins.
 
-FORM: user-pinned reference (Tend), code-led. Signature: arch-shaped posture picture, and bars that grow from sage to forest.
+FORM: team-selected reference (Tend), code-led. Signature: arch-shaped posture picture, and bars that grow from sage to forest.
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
 
-## Unresolved
+## Follow-on surfaces
 
-- Clinic, slip, DTAM, and landing surfaces inherit this world in later passes (redesign.md order).
+- Clinic, slip, DTAM, and landing surfaces share this direction.
