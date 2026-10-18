@@ -1,0 +1,152 @@
+<!doctype html>
+<!-- Source of docs/images/workflow.png. Render: chrome --headless --screenshot --window-size=1400,860 --force-device-scale-factor=2 -->
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ขั้นตอนการทำงาน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@400;500&display=block" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6f0; --surface: #fbfcf8; --fg: #1f2f25; --muted: #3f5546; --line: #d6e0d2;
+    --sage: #9cb59a; --sage-tint: #dfe8da; --brand: #2f4f3a; --brand-2: #456b52; --brand-tint: #eaf0e6;
+    --gold: #f2c14e; --gold-tint: #fbf1d3; --clay: #a4563a; --red: #a51c22; --red-tint: #f9e4e2;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1400px; height: 860px; }
+  body {
+    font-family: "IBM Plex Sans Thai", sans-serif; color: var(--fg);
+    background: radial-gradient(900px 500px at 90% -10%, #fbf1d3 0%, transparent 60%),
+                radial-gradient(800px 600px at -10% 110%, #dfe8da 0%, transparent 60%), var(--bg);
+    padding: 52px 64px;
+  }
+  header { display: flex; align-items: center; gap: 18px; }
+  header svg { width: 60px; height: 60px; }
+  .eyebrow { font-size: 20px; color: var(--muted); font-weight: 500; }
+  h1 { font-size: 40px; font-weight: 700; color: var(--brand); line-height: 1.2; }
+  h1 em { font-style: normal; color: var(--clay); }
+
+  .flow { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 44px; margin-top: 44px; }
+  .step {
+    position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 26px;
+    padding: 26px 24px 24px; box-shadow: 0 1px 2px rgba(31,47,37,.06), 0 12px 32px -12px rgba(31,47,37,.18);
+    display: flex; flex-direction: column; gap: 14px; min-height: 400px;
+  }
+  .top { display: flex; align-items: center; justify-content: space-between; }
+  .num {
+    width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--brand); color: #fff; font-weight: 700; font-size: 22px;
+  }
+  .who { font-size: 17px; font-weight: 600; padding: 5px 14px; border-radius: 999px; background: var(--brand-tint); color: var(--brand); }
+  .who.patient { background: var(--gold-tint); color: #6b4f0e; }
+  .who.dtam { background: var(--sage-tint); color: var(--brand); }
+  .icon { width: 76px; height: 76px; border-radius: 22px; display: grid; place-items: center; background: var(--brand-tint); }
+  .patient-card .icon { background: var(--gold-tint); }
+  .icon svg { width: 42px; height: 42px; stroke: var(--brand); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  h2 { font-size: 27px; font-weight: 700; color: var(--brand); line-height: 1.3; }
+  ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 9px; font-family: "IBM Plex Sans Thai Looped", sans-serif; }
+  li { font-size: 18.5px; line-height: 1.45; color: var(--muted); padding-left: 22px; position: relative; }
+  li::before { content: ""; position: absolute; left: 2px; top: 11px; width: 8px; height: 8px; border-radius: 50%; background: var(--sage); }
+  .tag { margin-top: auto; font-size: 16px; font-weight: 600; color: var(--brand-2); display: flex; align-items: center; gap: 8px; }
+  .tag svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tag.red { color: var(--red); }
+
+  .arrow { position: absolute; top: 50%; right: -38px; width: 32px; height: 32px; transform: translateY(-50%); z-index: 2; }
+  .arrow svg { width: 32px; height: 32px; stroke: var(--brand-2); fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  .loop {
+    margin-top: 30px; display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-radius: 20px;
+    border: 2px dashed var(--sage); background: rgba(251,252,248,.7); font-size: 20px; color: var(--muted);
+  }
+  .loop svg { width: 30px; height: 30px; flex: none; stroke: var(--brand); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .loop { flex-wrap: wrap; row-gap: 6px; }
+  .nb { white-space: nowrap; }
+  .loop b { color: var(--brand); font-weight: 700; }
+  .loop .sep { color: var(--sage); }
+</style>
+</head>
+<body>
+  <header>
+    <svg viewBox="0 0 48 48"><rect width="48" height="48" rx="14" fill="#2f4f3a"/><circle cx="37" cy="9.5" r="3.4" fill="#f2c14e"/><path d="M8 22 24 8.5 40 22" fill="none" stroke="#fbfcf8" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 40V28" stroke="#fbfcf8" stroke-width="3" stroke-linecap="round"/><path d="M24 31c0-6 4-9.5 9.5-9.5 0 6-4 9.5-9.5 9.5z" fill="#fbfcf8"/><path d="M24 33.5c-5.2 0-9-3.6-9-8.5 5.2 0 9 3.6 9 8.5z" fill="#b8cfb3"/><path d="M16.5 40h15" stroke="#9cb59a" stroke-width="2.6" stroke-linecap="round"/></svg>
+    <div>
+      <p class="eyebrow">การบ้านหลังนวด · ขั้นตอนการทำงาน</p>
+      <h1>จากคลินิก ถึงบ้านผู้ป่วย <em>แล้วกลับมาที่คลินิก</em></h1>
+    </div>
+  </header>
+
+  <section class="flow">
+    <article class="step">
+      <div class="top"><span class="num">1</span><span class="who">คลินิก</span></div>
+      <div class="icon"><svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="18" rx="2.5"/><path d="M9 3.5V2.5h6v1"/><path d="M8.5 10h7M8.5 13.5h7M8.5 17h4"/></svg></div>
+      <h2>แพทย์แผนไทย<br>สั่งท่า</h2>
+      <ul>
+        <li>เลือกท่าจากแผ่นของกรมฯ ให้ผู้ป่วยรายคน</li>
+        <li>กำหนดความถี่ เวลาเตือน วันนัด</li>
+        <li>พิมพ์ใบนัด A6 พร้อม QR</li>
+      </ul>
+      <p class="tag"><svg viewBox="0 0 24 24"><path d="M12 8v4l2.5 2.5"/><circle cx="12" cy="12" r="9"/></svg>สร้างแผนในราว 30 วินาที</p>
+      <div class="arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </article>
+
+    <article class="step patient-card">
+      <div class="top"><span class="num">2</span><span class="who patient">ผู้ป่วย</span></div>
+      <div class="icon"><svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/><circle cx="12" cy="9.5" r="2.2"/><path d="M8.8 14.5c.6-1.6 1.8-2.5 3.2-2.5s2.6.9 3.2 2.5"/></svg></div>
+      <h2>ผู้ป่วยทำ<br>ที่บ้าน</h2>
+      <ul>
+        <li>สแกน QR ไม่ต้องติดตั้งแอป</li>
+        <li>ทำท่าตามเสียงภาษาไทย</li>
+        <li>กล้องช่วยจับเวลา ค้างท่า</li>
+        <li>บอกระดับปวด ก่อนและหลังทำ</li>
+      </ul>
+      <p class="tag"><svg viewBox="0 0 24 24"><rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>ภาพกล้องไม่ออกจากมือถือ</p>
+      <div class="arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </article>
+
+    <article class="step">
+      <div class="top"><span class="num">3</span><span class="who">คลินิก</span></div>
+      <div class="icon"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></div>
+      <h2>ผลกลับถึง<br>คลินิก</h2>
+      <ul>
+        <li>เห็นการทำตามแผน และระดับปวด</li>
+        <li>เรียงผู้ป่วย ตามความเร่งด่วน</li>
+        <li>รับทราบธงแดง ก่อนนัดครั้งถัดไป</li>
+      </ul>
+      <p class="tag red"><svg viewBox="0 0 24 24"><path d="M4 21V4"/><path d="M4 4h12l-2 4 2 4H4"/></svg>ธงแดงด่วนขึ้นเป็นรายการแรก</p>
+      <div class="arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </article>
+
+    <article class="step">
+      <div class="top"><span class="num">4</span><span class="who dtam">กรมฯ</span></div>
+      <div class="icon"><svg viewBox="0 0 24 24"><path d="M4 20h16"/><rect x="5.5" y="12" width="3" height="6" rx="1"/><rect x="10.5" y="8" width="3" height="10" rx="1"/><rect x="15.5" y="4.5" width="3" height="13.5" rx="1"/></svg></div>
+      <h2>กรมฯ เห็น<br>ภาพรวม</h2>
+      <ul>
+        <li>ร้อยละการทำตามแผน รายสัปดาห์</li>
+        <li>เทียบรายศูนย์บริการ</li>
+        <li>ธงแดงแยกตามกลุ่มอาการ</li>
+      </ul>
+      <p class="tag"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.2 7.5 9.5 4.3-1.3 7.5-4.9 7.5-9.5V6z"/></svg>ตัวเลขรวม ไม่มีข้อมูลรายคน</p>
+    </article>
+  </section>
+
+  <div class="loop">
+    <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.6 4.5M20 20v-4h-4"/></svg>
+    <span><b>นัดครั้งถัดไป</b> แพทย์แผนไทยใช้ผลจากบ้านประกอบการดูแลและปรับแผน</span>
+    <span class="sep">•</span>
+    <span>ระบบไม่วินิจฉัย ไม่เลือกท่าเอง ผู้ประกอบวิชาชีพเป็นผู้สั่งทุกครั้ง</span>
+  </div>
+<script>
+  // Thai has no spaces between words: wrap only at the spaces written in the text.
+  for (const el of document.querySelectorAll("li, .tag, h2, .loop span:not(.sep)")) {
+    for (const node of [...el.childNodes]) {
+      if (node.nodeType !== 3 || !node.textContent.trim()) continue;
+      const frag = document.createDocumentFragment();
+      node.textContent.split(/( )/).forEach((part) => {
+        if (part === " ") frag.append(" ");
+        else if (part) { const s = document.createElement("span"); s.className = "nb"; s.textContent = part; frag.append(s); }
+      });
+      node.replaceWith(frag);
+    }
+  }
+</script>
+</body>
+</html>
